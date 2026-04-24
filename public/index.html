@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retail Kit — powered by wedo studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--white:#fff;--bg:#f5f5f3;--border:#d8d8d4;--border2:#b8b8b4;--ink:#1a1a1a;--ink2:#444;--ink3:#777;--f:'Plus Jakarta Sans',sans-serif}
+body{background:var(--bg);color:var(--ink);font-family:var(--f);min-height:100vh}
+.hdr{background:#fff;border-bottom:1px solid var(--border);padding:0 2.5rem;height:60px;display:flex;align-items:center;justify-content:space-between}
+.hdr-product{font-size:15px;font-weight:700;color:var(--ink)}
+.hdr-powered{font-size:11px;color:var(--ink3);margin-left:6px}
+.hdr-powered b{color:var(--ink2)}
+.hdr-beta{font-size:10px;font-weight:600;color:var(--ink3);letter-spacing:0.1em;text-transform:uppercase;border:1px solid var(--border2);padding:3px 8px;border-radius:2px}
+.hero{background:#fff;border-bottom:1px solid var(--border);padding:3.5rem 2.5rem 3rem}
+.hero-eyebrow{font-size:11px;font-weight:600;letter-spacing:0.12em;color:var(--ink3);text-transform:uppercase;margin-bottom:1.25rem}
+.hero-title{font-size:36px;font-weight:300;line-height:1.15;letter-spacing:-1.5px;color:var(--ink);margin-bottom:1rem;max-width:500px}
+.hero-title b{font-weight:700}
+.hero-sub{font-size:14px;color:var(--ink2);line-height:1.75;max-width:440px}
+.steps-wrap{padding:2rem 2.5rem 0}
+.steps{display:flex;align-items:center;margin-bottom:2rem}
+.step{display:flex;align-items:center;gap:8px}
+.step-dot{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:1.5px solid var(--border2);background:#fff;color:var(--ink3);flex-shrink:0;transition:all .2s}
+.step.active .step-dot{background:var(--ink);color:#fff;border-color:var(--ink)}
+.step.done .step-dot{background:var(--ink);color:#fff;border-color:var(--ink)}
+.step-label{font-size:12px;color:var(--ink3);font-weight:500;white-space:nowrap}
+.step.active .step-label{color:var(--ink);font-weight:600}
+.step.done .step-label{color:var(--ink2)}
+.step-line{flex:1;height:1px;background:var(--border);margin:0 10px;min-width:16px}
+.step-line.done{background:var(--ink)}
+.form-card{background:#fff;border:1px solid var(--border);border-radius:2px;padding:2rem;margin-bottom:1rem}
+.fc-title{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:4px}
+.fc-sub{font-size:12px;color:var(--ink2);margin-bottom:1.5rem;line-height:1.6}
+.geo-banner{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;padding:1rem 1.25rem;background:#f0f0ee;border:1px solid var(--border);border-radius:2px;margin-bottom:1.25rem}
+.geo-left{display:flex;align-items:center;gap:10px}
+.geo-flag{font-size:20px}
+.geo-label{font-size:11px;color:var(--ink3);font-weight:500}
+.geo-country{font-size:14px;font-weight:700;color:var(--ink)}
+.geo-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.geo-confirm{background:var(--ink);color:#fff;border:none;padding:8px 16px;border-radius:2px;font-family:var(--f);font-size:12px;font-weight:600;cursor:pointer}
+.geo-change{background:none;border:1px solid var(--border2);color:var(--ink2);padding:8px 14px;border-radius:2px;font-family:var(--f);font-size:12px;font-weight:500;cursor:pointer}
+.geo-change:hover{border-color:var(--ink);color:var(--ink)}
+.geo-dot{width:6px;height:6px;border-radius:50%;background:var(--ink3);animation:blink 1s infinite;display:inline-block}
+@keyframes blink{0%,100%{opacity:.3}50%{opacity:1}}
+.country-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+.c-opt{padding:10px 12px;border:1.5px solid var(--border);border-radius:2px;background:#f5f5f3;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:8px}
+.c-opt:hover{border-color:var(--ink2);background:#fff}
+.c-opt.active{border-color:var(--ink);background:#fff}
+.c-flag{font-size:16px}
+.c-name{font-size:12px;font-weight:600;color:var(--ink2)}
+.c-opt.active .c-name{color:var(--ink)}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:0.07em}
+.field input,.field select{background:#fff;border:1.5px solid var(--border2);color:var(--ink);padding:11px 14px;border-radius:2px;font-family:var(--f);font-size:13px;font-weight:500;outline:none;transition:border .15s;width:100%;-webkit-appearance:none}
+.field input::placeholder{color:var(--ink3)}
+.field input:focus,.field select:focus{border-color:var(--ink)}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23444' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px}
+.field select option{background:#fff;color:var(--ink)}
+.field-full{grid-column:1/-1}
+.btn-row{display:flex;gap:10px;align-items:center;margin-top:1.5rem;flex-wrap:wrap}
+.btn-p{background:var(--ink);color:#fff;border:none;padding:13px 28px;border-radius:2px;font-family:var(--f);font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s}
+.btn-p:hover{opacity:.82}
+.btn-p:disabled{opacity:.35;cursor:not-allowed}
+.btn-hint{font-size:11px;color:var(--ink3);font-weight:500}
+.loader{display:none;padding:3rem 2.5rem;text-align:center}
+.loader-bar{height:1px;background:var(--border);max-width:200px;margin:0 auto 1.5rem;overflow:hidden}
+.loader-fill{height:100%;background:var(--ink);animation:ld 1.8s ease-in-out infinite}
+@keyframes ld{0%{width:0;margin-left:0}50%{width:60%;margin-left:20%}100%{width:0;margin-left:100%}}
+.loader p{font-size:12px;color:var(--ink3);letter-spacing:.04em}
+.error-box{display:none;margin:0 0 1rem;padding:12px 16px;border:1px solid #c0392b;background:#fdf5f5;border-radius:2px;font-size:12px;color:#c0392b;font-weight:500}
+.result{display:none;padding-bottom:4rem}
+.result-bar{background:#fff;border-bottom:1px solid var(--border);padding:1.25rem 2.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem}
+.r-name{font-size:20px;font-weight:300;letter-spacing:-.5px;color:var(--ink)}
+.r-name b{font-weight:700}
+.r-meta{font-size:11px;color:var(--ink3);margin-top:2px;font-weight:500}
+.r-country{display:flex;align-items:center;gap:8px;padding:8px 14px;border:1px solid var(--border);border-radius:2px;background:#f5f5f3}
+.r-cflag{font-size:16px}
+.r-cname{font-size:12px;font-weight:700;color:var(--ink)}
+.r-crange{font-size:10px;color:var(--ink3);font-weight:500}
+.section{padding:0 2.5rem;margin-bottom:1rem}
+.sec-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink3);margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+.card{background:#fff;border:1px solid var(--border);border-radius:2px;overflow:hidden;margin-bottom:1px}
+.card-head{padding:1rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:12px;font-weight:700;color:var(--ink)}
+.card-tag{font-size:10px;color:var(--ink3);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.card-body{padding:1.5rem}
+.concept-lead{font-size:15px;font-weight:300;line-height:1.85;color:var(--ink);margin-bottom:1rem;letter-spacing:-.2px}
+.concept-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.concept-block{padding:1rem;background:#f5f5f3;border-radius:2px}
+.cb-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:6px}
+.cb-text{font-size:12px;color:var(--ink2);line-height:1.75}
+.zones{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:1px;background:var(--border)}
+.zone{background:#fff;padding:1.25rem}
+.zone-pct{font-size:26px;font-weight:300;color:var(--ink);letter-spacing:-1px;line-height:1;margin-bottom:6px}
+.zone-name{font-size:12px;font-weight:700;color:var(--ink);margin-bottom:4px}
+.zone-desc{font-size:11px;color:var(--ink2);line-height:1.6}
+.flow-note{font-size:12px;color:var(--ink2);line-height:1.85;padding:1rem;background:#f5f5f3;border-radius:2px;margin-bottom:1rem}
+.kpoints{display:flex;flex-direction:column}
+.kp{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)}
+.kp:last-child{border-bottom:none}
+.kp-num{font-size:10px;font-weight:700;color:var(--ink3);width:20px;flex-shrink:0;padding-top:2px}
+.kp-text{font-size:12px;color:var(--ink2);line-height:1.65}
+.unlock-bar{background:#fff;border:1px solid var(--border);border-radius:2px;padding:1.5rem;margin:0 2.5rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.ub-title{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:3px}
+.ub-sub{font-size:12px;color:var(--ink2)}
+.step2-form{display:none;padding:0 2.5rem;margin-bottom:1.5rem}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);padding:9px 10px;border-bottom:1px solid var(--border);background:#f5f5f3}
+.tbl td{padding:11px 10px;border-bottom:1px solid var(--border);color:var(--ink2);vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tbl .r{text-align:right;font-weight:600;color:var(--ink)}
+.inv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1px;background:var(--border)}
+.inv-cell{background:#fff;padding:1.25rem}
+.inv-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);margin-bottom:6px}
+.inv-usd{font-size:16px;font-weight:600;color:var(--ink)}
+.inv-local{font-size:11px;color:var(--ink3);margin-top:2px}
+.inv-total{display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem;background:var(--ink);border-radius:2px;margin-bottom:8px}
+.it-label{font-size:13px;font-weight:500;color:rgba(255,255,255,.65)}
+.it-usd{font-size:26px;font-weight:300;color:#fff;letter-spacing:-1px}
+.it-local{font-size:12px;color:rgba(255,255,255,.45);margin-top:2px}
+.it-m2{font-size:11px;color:var(--ink3);text-align:right;font-weight:500}
+.reg-note{font-size:12px;color:var(--ink2);line-height:1.75;padding:1rem;background:#f5f5f3;border-radius:2px;margin-top:10px}
+.tl{display:flex;flex-direction:column}
+.tl-item{display:flex;gap:1.5rem;padding-bottom:1.5rem}
+.tl-item:last-child{padding-bottom:0}
+.tl-left{display:flex;flex-direction:column;align-items:center;width:28px;flex-shrink:0}
+.tl-num{width:28px;height:28px;border:1.5px solid var(--border2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--ink2);background:#fff;flex-shrink:0}
+.tl-line{width:1px;background:var(--border);flex:1;margin-top:6px}
+.tl-item:last-child .tl-line{display:none}
+.tl-weeks{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);margin-bottom:3px}
+.tl-phase{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:4px}
+.tl-desc{font-size:12px;color:var(--ink2);line-height:1.7}
+.rec-group{margin-bottom:1.5rem}
+.rec-group:last-child{margin-bottom:0}
+.rg-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.rec-list{list-style:none;display:flex;flex-direction:column;gap:6px}
+.rec-list li{font-size:12px;color:var(--ink2);padding:10px 12px;line-height:1.7;background:#f5f5f3;border-radius:2px;border-left:2px solid var(--border2)}
+.rg-d .rec-list li{border-left-color:var(--ink)}
+.rg-r .rec-list li{border-left-color:#b03030}
+.prompt-wrap{display:grid;gap:1px;background:var(--border)}
+.prompt-item{background:#fff;padding:1.25rem 1.5rem}
+.prompt-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.prompt-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3)}
+.btn-copy{background:none;border:1.5px solid var(--border2);color:var(--ink2);font-family:var(--f);font-size:10px;font-weight:700;padding:5px 12px;border-radius:2px;cursor:pointer;text-transform:uppercase;letter-spacing:.06em;transition:all .15s}
+.btn-copy:hover,.btn-copy.copied{border-color:var(--ink);color:var(--ink)}
+.prompt-text{font-size:11px;color:var(--ink2);line-height:1.8;font-family:monospace}
+.wedo-footer{background:var(--ink);padding:1.5rem 2.5rem;display:flex;align-items:center;justify-content:space-between;margin-top:3rem}
+.wf-txt{font-size:11px;color:rgba(255,255,255,.45);letter-spacing:.04em}
+.wf-txt b{color:rgba(255,255,255,.8)}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div style="display:flex;align-items:baseline;gap:6px">
+    <span class="hdr-product">Retail Kit</span>
+    <span class="hdr-powered">powered by <b>wedo studio</b></span>
+  </div>
+  <span class="hdr-beta">Beta</span>
+</div>
+
+<div class="hero">
+  <p class="hero-eyebrow">Herramienta de expansión comercial</p>
+  <h1 class="hero-title">Analizá tu local.<br><b>En segundos.</b></h1>
+  <p class="hero-sub">Ingresá los datos esenciales y obtené un análisis profesional: concepto, layout, inversión y estrategia — calibrado a tu mercado.</p>
+</div>
+
+<div class="steps-wrap" id="steps-wrap">
+  <div class="steps">
+    <div class="step active" id="si1"><div class="step-dot">1</div><span class="step-label">Lo esencial</span></div>
+    <div class="step-line" id="ln1"></div>
+    <div class="step" id="si2"><div class="step-dot">2</div><span class="step-label">Vista preliminar</span></div>
+    <div class="step-line" id="ln2"></div>
+    <div class="step" id="si3"><div class="step-dot">3</div><span class="step-label">Análisis completo</span></div>
+  </div>
+
+  <div id="step1">
+    <div class="form-card">
+      <div class="fc-title">¿Dónde abrís el local?</div>
+      <div class="fc-sub">Detectamos tu ubicación automáticamente — podés cambiarla si es necesario</div>
+      <div id="geo-detecting" style="display:flex;align-items:center;gap:8px;padding:1rem;background:#f0f0ee;border-radius:2px;font-size:12px;color:var(--ink3)">
+        <div class="geo-dot"></div> Detectando tu ubicación...
+      </div>
+      <div class="geo-banner" id="geo-banner" style="display:none">
+        <div class="geo-left">
+          <span class="geo-flag" id="geo-flag"></span>
+          <div>
+            <div class="geo-label">País detectado</div>
+            <div class="geo-country" id="geo-country-name"></div>
+          </div>
+        </div>
+        <div class="geo-right">
+          <button class="geo-confirm" onclick="confirmGeo()">Confirmar</button>
+          <button class="geo-change" onclick="showCountrySelector()">Cambiar</button>
+        </div>
+      </div>
+      <div id="country-selector" style="display:none;margin-top:1rem">
+        <div class="country-grid">
+          <div class="c-opt" data-country="AR" onclick="manualCountry(this)"><span class="c-flag">🇦🇷</span><span class="c-name">Argentina</span></div>
+          <div class="c-opt" data-country="UY" onclick="manualCountry(this)"><span class="c-flag">🇺🇾</span><span class="c-name">Uruguay</span></div>
+          <div class="c-opt" data-country="PA" onclick="manualCountry(this)"><span class="c-flag">🇵🇦</span><span class="c-name">Panamá</span></div>
+          <div class="c-opt" data-country="MX" onclick="manualCountry(this)"><span class="c-flag">🇲🇽</span><span class="c-name">México</span></div>
+          <div class="c-opt" data-country="CL" onclick="manualCountry(this)"><span class="c-flag">🇨🇱</span><span class="c-name">Chile</span></div>
+          <div class="c-opt" data-country="CO" onclick="manualCountry(this)"><span class="c-flag">🇨🇴</span><span class="c-name">Colombia</span></div>
+          <div class="c-opt" data-country="PE" onclick="manualCountry(this)"><span class="c-flag">🇵🇪</span><span class="c-name">Perú</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="fc-title">Tu marca y local</div>
+      <div class="fc-sub">3 datos esenciales para generar el análisis preliminar</div>
+      <div class="error-box" id="error-box"></div>
+      <div class="form-grid">
+        <div class="field"><label>Nombre de la marca</label><input type="text" id="brand_name" placeholder="Ej: Mi Restaurante"/></div>
+        <div class="field"><label>Categoría de negocio</label>
+          <select id="category">
+            <option value="" disabled selected>Seleccioná una categoría</option>
+            <option value="Cafetería / Café bar">Cafetería / Café bar</option>
+            <option value="Restaurante">Restaurante</option>
+            <option value="Indumentaria">Indumentaria</option>
+            <option value="Calzado">Calzado</option>
+            <option value="Cosmética / Belleza">Cosmética / Belleza</option>
+            <option value="Electrónica / Tech">Electrónica / Tech</option>
+            <option value="Librería / Papelería">Librería / Papelería</option>
+            <option value="Farmacia">Farmacia</option>
+            <option value="Gimnasio / Wellness">Gimnasio / Wellness</option>
+            <option value="Otra">Otra</option>
+          </select>
+        </div>
+        <div class="field"><label>Superficie del local (m²)</label><input type="number" id="surface_m2" placeholder="Ej: 80" min="10"/></div>
+        <div class="field"><label>Tipo de ubicación</label>
+          <select id="location_type">
+            <option value="" disabled selected>Seleccioná una opción</option>
+            <option value="Shopping / Mall">Shopping / Mall</option>
+            <option value="Calle comercial">Calle comercial</option>
+            <option value="Barrio residencial">Barrio residencial</option>
+            <option value="Zona gastronómica">Zona gastronómica</option>
+            <option value="Aeropuerto / Terminal">Aeropuerto / Terminal</option>
+            <option value="Strip center">Strip center</option>
+          </select>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-p" onclick="step1Submit()">Ver análisis preliminar →</button>
+        <span class="btn-hint">Menos de 1 minuto</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="loader" id="loader">
+    <div class="loader-bar"><div class="loader-fill"></div></div>
+    <p>Generando análisis con IA...</p>
+  </div>
+</div>
+
+<div class="result" id="result">
+  <div class="result-bar">
+    <div>
+      <div class="r-name"><b id="r-brand"></b> — Análisis preliminar</div>
+      <div class="r-meta" id="r-meta"></div>
+    </div>
+    <div class="r-country" id="r-country-badge"></div>
+  </div>
+
+  <div class="section">
+    <div class="sec-label">Concepto del proyecto</div>
+    <div class="card"><div class="card-body">
+      <p class="concept-lead" id="r-concept"></p>
+      <div class="concept-grid">
+        <div class="concept-block"><div class="cb-label">Experiencia objetivo</div><p class="cb-text" id="r-target"></p></div>
+        <div class="concept-block"><div class="cb-label">Intención de diseño</div><p class="cb-text" id="r-design"></p></div>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="section">
+    <div class="sec-label">Layout y circulación</div>
+    <div class="card">
+      <div class="card-head"><span class="card-title">Distribución de zonas</span><span class="card-tag" id="r-m2tag"></span></div>
+      <div class="zones" id="r-zones"></div>
+      <div class="card-body">
+        <p class="flow-note" id="r-flow"></p>
+        <div class="kpoints" id="r-kpoints"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="unlock-bar" id="unlock-bar">
+    <div>
+      <div class="ub-title">¿Querés el análisis completo?</div>
+      <div class="ub-sub">Inversión regional, cronograma y recomendaciones — 4 campos más.</div>
+    </div>
+    <button class="btn-p" onclick="showStep2()">Completar análisis →</button>
+  </div>
+
+  <div class="step2-form" id="step2-form">
+    <div class="form-card">
+      <div class="fc-title">Completá el análisis</div>
+      <div class="fc-sub">4 campos para inversión, cronograma y recomendaciones estratégicas</div>
+      <div class="error-box" id="error-box2"></div>
+      <div class="form-grid">
+        <div class="field"><label>Posicionamiento de marca</label>
+          <select id="brand_positioning">
+            <option value="" disabled selected>Seleccioná una opción</option>
+            <option value="Premium / Lujo">Premium / Lujo</option>
+            <option value="Medio-alto">Medio-alto</option>
+            <option value="Masivo / Popular">Masivo / Popular</option>
+            <option value="Low-cost / Accesible">Low-cost / Accesible</option>
+          </select>
+        </div>
+        <div class="field"><label>Presupuesto disponible</label>
+          <select id="budget_level">
+            <option value="" disabled selected>Seleccioná una opción</option>
+            <option value="Bajo (hasta USD 20.000)">Bajo — hasta USD 20.000</option>
+            <option value="Medio (USD 20.000 – 60.000)">Medio — USD 20.000 a 60.000</option>
+            <option value="Alto (USD 60.000 – 150.000)">Alto — USD 60.000 a 150.000</option>
+            <option value="Premium (más de USD 150.000)">Premium — más de USD 150.000</option>
+          </select>
+        </div>
+        <div class="field"><label>Días hasta apertura</label><input type="number" id="opening_deadline_days" placeholder="Ej: 90" min="15"/></div>
+        <div class="field field-full"><label>Objetivo principal del local</label><input type="text" id="main_objective" placeholder="Ej: Maximizar ticket promedio, generar tráfico de marca..."/></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-p" onclick="step2Submit()">Generar análisis completo →</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="full-result" style="display:none">
+    <div class="section">
+      <div class="sec-label">Mobiliario y equipamiento</div>
+      <div class="card"><div class="card-body" style="padding:0"><table class="tbl" id="r-furniture"></table></div></div>
+    </div>
+    <div class="section">
+      <div class="sec-label">Estimación de inversión</div>
+      <div class="card">
+        <div class="card-body" style="padding:0"><div class="inv-grid" id="r-inv-grid"></div></div>
+        <div class="card-body">
+          <div class="inv-total"><span class="it-label">Total estimado</span><div style="text-align:right"><div class="it-usd" id="r-total-usd"></div><div class="it-local" id="r-total-local"></div></div></div>
+          <p class="it-m2" id="r-m2cost"></p>
+          <div class="reg-note" id="r-regnote"></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="sec-label">Cronograma de ejecución</div>
+      <div class="card"><div class="card-body"><div class="tl" id="r-timeline"></div></div></div>
+    </div>
+    <div class="section">
+      <div class="sec-label">Recomendaciones estratégicas</div>
+      <div class="card"><div class="card-body">
+        <div class="rec-group rg-d"><div class="rg-title">Decisiones clave</div><ul class="rec-list" id="r-decisions"></ul></div>
+        <div class="rec-group"><div class="rg-title">Optimización de costos</div><ul class="rec-list" id="r-optimize"></ul></div>
+        <div class="rec-group rg-r"><div class="rg-title">Riesgos a evitar</div><ul class="rec-list" id="r-risks"></ul></div>
+      </div></div>
+    </div>
+    <div class="section">
+      <div class="sec-label">Prompts para renders — Midjourney</div>
+      <div class="card"><div class="card-body" style="padding:0">
+        <div class="prompt-wrap">
+          <div class="prompt-item"><div class="prompt-head"><span class="prompt-label">Interior render</span><button class="btn-copy" onclick="cp('r-pint',this)">Copiar</button></div><p class="prompt-text" id="r-pint"></p></div>
+          <div class="prompt-item"><div class="prompt-head"><span class="prompt-label">Vista top / planta</span><button class="btn-copy" onclick="cp('r-ptop',this)">Copiar</button></div><p class="prompt-text" id="r-ptop"></p></div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="wedo-footer">
+    <span class="wf-txt">Retail Kit — powered by <b>wedo studio</b></span>
+    <span class="wf-txt">wedo-studio.com</span>
+  </div>
+</div>
+
+<script>
+const C={AR:{name:"Argentina",flag:"🇦🇷",symbol:"$",fx:1427,constRange:"USD 400–700/m²"},UY:{name:"Uruguay",flag:"🇺🇾",symbol:"$U",fx:42,constRange:"USD 600–900/m²"},PA:{name:"Panamá",flag:"🇵🇦",symbol:"USD",fx:1,constRange:"USD 900–1.400/m²"},MX:{name:"México",flag:"🇲🇽",symbol:"$",fx:17.2,constRange:"USD 700–1.100/m²"},CL:{name:"Chile",flag:"🇨🇱",symbol:"$",fx:980,constRange:"USD 800–1.200/m²"},CO:{name:"Colombia",flag:"🇨🇴",symbol:"$",fx:4280,constRange:"USD 500–800/m²"},PE:{name:"Perú",flag:"🇵🇪",symbol:"S/",fx:3.75,constRange:"USD 450–750/m²"}};
+
+let selCode=null;
+
+function initGeo(){
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(pos=>{
+      const code=guessCountry(pos.coords.latitude,pos.coords.longitude);
+      showGeoBanner(code);
+    },()=>showCountrySelector());
+  } else showCountrySelector();
+}
+
+function guessCountry(lat,lng){
+  if(lat>=-55&&lat<=-21&&lng>=-73&&lng<=-53)return'AR';
+  if(lat>=-34&&lat<=-30&&lng>=-58&&lng<=-53)return'UY';
+  if(lat>=7&&lat<=10&&lng>=-83&&lng<=-77)return'PA';
+  if(lat>=14&&lat<=32&&lng>=-118&&lng<=-86)return'MX';
+  if(lat>=-56&&lat<=-17&&lng>=-75&&lng<=-66)return'CL';
+  if(lat>=-4&&lat<=13&&lng>=-79&&lng<=-66)return'CO';
+  if(lat>=-18&&lat<=-0&&lng>=-81&&lng<=-68)return'PE';
+  return'AR';
+}
+
+function showGeoBanner(code){
+  selCode=code;
+  const c=C[code];
+  document.getElementById('geo-detecting').style.display='none';
+  document.getElementById('geo-flag').textContent=c.flag;
+  document.getElementById('geo-country-name').textContent=c.name;
+  document.getElementById('geo-banner').style.display='flex';
+}
+
+function confirmGeo(){
+  document.getElementById('geo-banner').style.display='none';
+  showConfirmed();
+}
+
+function showConfirmed(){
+  const c=C[selCode];
+  document.getElementById('geo-detecting').style.display='none';
+  document.getElementById('geo-banner').style.display='none';
+  document.getElementById('country-selector').style.display='none';
+  let conf=document.getElementById('geo-confirmed');
+  if(!conf){conf=document.createElement('div');conf.id='geo-confirmed';conf.style.cssText='display:flex;align-items:center;gap:10px;padding:.75rem 1rem;background:#f0f0ee;border-radius:2px;font-size:12px;color:var(--ink2);font-weight:500';document.getElementById('geo-detecting').parentNode.appendChild(conf);}
+  conf.innerHTML=`<span style="font-size:16px">${c.flag}</span><span><b style="color:var(--ink)">${c.name}</b> — ${c.constRange}</span><button onclick="showCountrySelector()" style="margin-left:auto;background:none;border:none;font-size:11px;color:var(--ink3);cursor:pointer;font-family:var(--f);text-decoration:underline">Cambiar</button>`;
+}
+
+function showCountrySelector(){
+  document.getElementById('geo-detecting').style.display='none';
+  document.getElementById('geo-banner').style.display='none';
+  document.getElementById('country-selector').style.display='block';
+  let conf=document.getElementById('geo-confirmed');
+  if(conf)conf.style.display='none';
+}
+
+function manualCountry(el){
+  document.querySelectorAll('.c-opt').forEach(e=>e.classList.remove('active'));
+  el.classList.add('active');
+  selCode=el.dataset.country;
+  document.getElementById('country-selector').style.display='none';
+  showConfirmed();
+}
+
+function setStep(n){
+  [1,2,3].forEach(i=>{const s=document.getElementById('si'+i);s.classList.remove('active','done');if(i<n)s.classList.add('done');if(i===n)s.classList.add('active')});
+  [1,2].forEach(i=>{const l=document.getElementById('ln'+i);i<n?l.classList.add('done'):l.classList.remove('done')});
+}
+
+function showErr(id,msg){const e=document.getElementById(id);e.textContent=msg;e.style.display='block';}
+function hideErr(id){document.getElementById(id).style.display='none';}
+
+async function step1Submit(){
+  hideErr('error-box');
+  if(!selCode){showErr('error-box','Confirmá o seleccioná el país antes de continuar.');return;}
+  const b=document.getElementById('brand_name').value.trim();
+  const cat=document.getElementById('category').value;
+  const m2=document.getElementById('surface_m2').value.trim();
+  const loc=document.getElementById('location_type').value;
+  if(!b||!cat||!m2||!loc){showErr('error-box','Completá todos los campos para continuar.');return;}
+  document.getElementById('step1').style.display='none';
+  document.getElementById('loader').style.display='block';
+  try {
+    const res=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brand_name:b,category:cat,surface_m2:m2,location_type:loc,country_name:C[selCode].name,brand_positioning:'Medio-alto',budget_level:'Medio',opening_deadline_days:90,main_objective:'Maximizar conversión y ticket promedio'})});
+    const kit=await res.json();
+    if(kit.error)throw new Error(kit.error);
+    document.getElementById('loader').style.display='none';
+    document.getElementById('steps-wrap').style.display='none';
+    setStep(2);
+    renderPrelim(kit,b,cat,m2,loc,selCode);
+    document.getElementById('result').style.display='block';
+    document.getElementById('result').scrollIntoView({behavior:'smooth'});
+    window._kit=kit;
+  } catch(e){
+    document.getElementById('loader').style.display='none';
+    document.getElementById('step1').style.display='block';
+    showErr('error-box','Error generando el análisis. Intentá nuevamente.');
+  }
+}
+
+function renderPrelim(kit,b,cat,m2,loc,code){
+  const c=C[code];
+  document.getElementById('r-brand').textContent=b;
+  document.getElementById('r-meta').textContent=cat+' · '+m2+'m² · '+loc;
+  document.getElementById('r-country-badge').innerHTML=`<span class="r-cflag">${c.flag}</span><div><div class="r-cname">${c.name}</div><div class="r-crange">${c.constRange}</div></div>`;
+  const ps=kit.project_summary;
+  document.getElementById('r-concept').textContent=ps.concept;
+  document.getElementById('r-target').textContent=ps.target_experience;
+  document.getElementById('r-design').textContent=ps.design_intent;
+  document.getElementById('r-m2tag').textContent=m2+' m²';
+  document.getElementById('r-zones').innerHTML=kit.layout.zones.map(z=>`<div class="zone"><div class="zone-pct">${z.approx_percentage}</div><div class="zone-name">${z.name}</div><div class="zone-desc">${z.description}</div></div>`).join('');
+  document.getElementById('r-flow').textContent=kit.layout.customer_flow;
+  document.getElementById('r-kpoints').innerHTML=kit.layout.key_strategic_points.map((p,i)=>`<div class="kp"><span class="kp-num">0${i+1}</span><span class="kp-text">${p}</span></div>`).join('');
+}
+
+function showStep2(){
+  document.getElementById('unlock-bar').style.display='none';
+  document.getElementById('step2-form').style.display='block';
+  setStep(2);
+  document.getElementById('step2-form').scrollIntoView({behavior:'smooth'});
+}
+
+async function step2Submit(){
+  hideErr('error-box2');
+  const pos=document.getElementById('brand_positioning').value;
+  const bud=document.getElementById('budget_level').value;
+  const days=document.getElementById('opening_deadline_days').value.trim();
+  const obj=document.getElementById('main_objective').value.trim();
+  if(!pos||!bud||!days||!obj){showErr('error-box2','Completá todos los campos para continuar.');return;}
+  document.getElementById('step2-form').style.display='none';
+  const ld=document.createElement('div');ld.className='loader';ld.style.display='block';
+  ld.innerHTML='<div class="loader-bar"><div class="loader-fill"></div></div><p>Generando análisis completo...</p>';
+  document.getElementById('full-result').before(ld);
+  const b=document.getElementById('brand_name').value.trim();
+  const cat=document.getElementById('category').value;
+  const m2=parseFloat(document.getElementById('surface_m2').value)||55;
+  const loc=document.getElementById('location_type').value;
+  try {
+    const res=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brand_name:b,category:cat,surface_m2:m2,location_type:loc,country_name:C[selCode].name,brand_positioning:pos,budget_level:bud,opening_deadline_days:days,main_objective:obj})});
+    const kit=await res.json();
+    if(kit.error)throw new Error(kit.error);
+    ld.remove();setStep(3);
+    renderFull(kit,selCode,m2);
+    document.getElementById('full-result').style.display='block';
+    document.getElementById('full-result').scrollIntoView({behavior:'smooth'});
+  } catch(e){
+    ld.remove();
+    document.getElementById('step2-form').style.display='block';
+    showErr('error-box2','Error generando el análisis completo. Intentá nuevamente.');
+  }
+}
+
+function renderFull(kit,code,m2){
+  const c=C[code];
+  const inv=kit.investment_estimate;
+  document.getElementById('r-furniture').innerHTML=`<thead><tr><th>Ítem</th><th>Cant.</th><th style="text-align:right">Unit. USD</th><th style="text-align:right">Total USD</th></tr></thead><tbody>`+kit.furniture_and_equipment.map(f=>`<tr><td>${f.item}</td><td>${f.quantity}</td><td class="r">USD ${f.estimated_unit_cost_usd}</td><td class="r">USD ${f.total_cost_usd}</td></tr>`).join('')+`</tbody>`;
+  const items=[{l:'Construcción',v:inv.construction_cost_usd},{l:'Mobiliario',v:inv.furniture_cost_usd},{l:'Iluminación',v:inv.lighting_cost_usd},{l:'Cartelería',v:inv.signage_cost_usd},{l:'Otros',v:inv.other_costs_usd}];
+  const loc=v=>c.symbol!=='USD'?c.symbol+' '+Math.round(parseFloat(v)*c.fx).toLocaleString('es-AR'):null;
+  document.getElementById('r-inv-grid').innerHTML=items.map(i=>`<div class="inv-cell"><div class="inv-label">${i.l}</div><div class="inv-usd">USD ${i.v}</div>${loc(i.v)?`<div class="inv-local">${loc(i.v)}</div>`:''}</div>`).join('');
+  document.getElementById('r-total-usd').textContent='USD '+inv.total_estimated_usd;
+  document.getElementById('r-total-local').textContent=loc(inv.total_estimated_usd)||'';
+  document.getElementById('r-m2cost').textContent='Costo por m²: USD '+inv.cost_per_m2_usd;
+  document.getElementById('r-regnote').innerHTML=`<strong>${c.flag} ${c.name}:</strong> Costos calibrados al mercado local. Referencia: ${c.constRange}.`;
+  document.getElementById('r-timeline').innerHTML=kit.timeline.map((t,i)=>`<div class="tl-item"><div class="tl-left"><div class="tl-num">${i+1}</div><div class="tl-line"></div></div><div><div class="tl-weeks">${t.duration_weeks} semanas</div><div class="tl-phase">${t.phase}</div><div class="tl-desc">${t.description}</div></div></div>`).join('');
+  const rec=kit.strategic_recommendations;
+  document.getElementById('r-decisions').innerHTML=rec.key_decisions.map(r=>`<li>${r}</li>`).join('');
+  document.getElementById('r-optimize').innerHTML=rec.cost_optimization.map(r=>`<li>${r}</li>`).join('');
+  document.getElementById('r-risks').innerHTML=rec.risks_to_avoid.map(r=>`<li>${r}</li>`).join('');
+  const p=kit.image_generation_prompts;
+  document.getElementById('r-pint').textContent=p.interior_render;
+  document.getElementById('r-ptop').textContent=p.layout_top_view;
+}
+
+function cp(id,btn){navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>{btn.textContent='Copiado';btn.classList.add('copied');setTimeout(()=>{btn.textContent='Copiar';btn.classList.remove('copied');},2000)});}
+
+initGeo();
+</script>
+</body>
+</html>
