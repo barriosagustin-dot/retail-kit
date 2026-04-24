@@ -74,7 +74,11 @@ Reglas:
     const kit = JSON.parse(clean);
     res.status(200).json(kit);
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Error generando el kit', details: error.message });
-  }
-};
+    console.error('Error completo:', JSON.stringify(error));
+    res.status(500).json({ 
+      error: 'Error generando el kit', 
+      details: error.message,
+      type: error.constructor.name,
+      status: error.status || 'unknown'
+    });
+  } 
