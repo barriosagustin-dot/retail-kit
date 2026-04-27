@@ -1,9 +1,18 @@
 {
   "version": 2,
+  "functions": {
+    "api/image.js": {
+      "maxDuration": 120
+    }
+  },
   "routes": [
     {
       "src": "/api/generate",
       "dest": "/api/generate.js"
+    },
+    {
+      "src": "/api/image",
+      "dest": "/api/image.js"
     },
     {
       "src": "/(.*)",
