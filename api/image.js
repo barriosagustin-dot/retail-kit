@@ -5,12 +5,10 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
   if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
 
-  const { type, brand_name, category, style } = req.body || {};
-  if (!type) { res.status(400).json({ error: 'type is required' }); return; }
+  const { category, country, design_intent } = req.body || {};
+  if (!category) { res.status(400).json({ error: 'category is required' }); return; }
 
-  const prompt = type === 'facade'
-    ? `Photorealistic exterior facade render of a modern retail store called "${brand_name}", ${style}, contemporary commercial architecture, storefront with brand signage showing the name "${brand_name}" in clean modern typography, street level view, professional architectural photography, daytime, no people, ultra detailed`
-    : `Photorealistic architectural interior render of a ${category} store, ${style}, professional retail photography, no text, no signage, no people, ultra detailed, 8K quality`;
+  const prompt = `Photorealistic architectural interior render of a high-end ${category} in ${country}, ${design_intent}. Warm professional retail lighting, ultra-detailed materials, no people, no text overlays, no watermarks. Shot from entrance looking in, wide angle. Cinematic quality, 8K, architectural photography style.`;
 
   const token = process.env.REPLICATE_API_TOKEN;
   if (!token) { res.status(500).json({ error: 'REPLICATE_API_TOKEN not configured' }); return; }
