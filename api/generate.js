@@ -81,4 +81,4 @@ Reglas:
       type: error.constructor.name,
       status: error.status || 'unknown'
     });
- 
+  }
