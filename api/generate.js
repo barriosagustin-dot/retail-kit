@@ -82,3 +82,4 @@ Reglas:
       status: error.status || 'unknown'
     });
   }
+};
