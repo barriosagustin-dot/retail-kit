@@ -65,7 +65,7 @@ Reglas:
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const message = await client.messages.create({
-      model: 'claude-3-haiku-20240307',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 4000,
       messages: [{ role: 'user', content: prompt }]
     });
@@ -81,4 +81,4 @@ Reglas:
       type: error.constructor.name,
       status: error.status || 'unknown'
     });
-  } 
+ 
