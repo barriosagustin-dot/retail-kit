@@ -5,8 +5,12 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
   if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
 
-  const { prompt, type } = req.body || {};
-  if (!prompt) { res.status(400).json({ error: 'prompt is required' }); return; }
+  const { type, brand_name, category, style } = req.body || {};
+  if (!type) { res.status(400).json({ error: 'type is required' }); return; }
+
+  const prompt = type === 'facade'
+    ? `Photorealistic exterior facade render of a modern retail store called "${brand_name}", ${style}, contemporary commercial architecture, storefront with brand signage showing the name "${brand_name}" in clean modern typography, street level view, professional architectural photography, daytime, no people, ultra detailed`
+    : `Photorealistic architectural interior render of a ${category} store, ${style}, professional retail photography, no text, no signage, no people, ultra detailed, 8K quality`;
 
   const token = process.env.REPLICATE_API_TOKEN;
   if (!token) { res.status(500).json({ error: 'REPLICATE_API_TOKEN not configured' }); return; }
@@ -22,7 +26,7 @@ module.exports = async (req, res) => {
       body: JSON.stringify({
         input: {
           prompt,
-          aspect_ratio: type === 'topview' ? '1:1' : '16:9',
+          aspect_ratio: '16:9',
           output_format: 'webp',
           output_quality: 85,
           safety_tolerance: 2
