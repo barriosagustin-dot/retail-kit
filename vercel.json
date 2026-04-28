@@ -15,6 +15,14 @@
       "dest": "/api/image.js"
     },
     {
+      "src": "/api/pdf",
+      "dest": "/api/pdf.js"
+    },
+    {
+      "src": "/api/email",
+      "dest": "/api/email.js"
+    },
+    {
       "src": "/(.*)",
       "dest": "/public/$1"
     }
