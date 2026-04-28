@@ -54,7 +54,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f);min-height:100vh
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem}
 .field{display:flex;flex-direction:column;gap:5px}
 .field label{font-size:11px;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:0.07em}
-.field input,.field select{background:#fff;border:1.5px solid var(--border2);color:var(--ink);padding:11px 14px;border-radius:2px;font-family:var(--f);font-size:13px;font-weight:500;outline:none;transition:border .15s;width:100%;-webkit-appearance:none}
+.field input,.field select{background:#fff;border:1.5px solid var(--border2);color:var(--ink);padding:11px 14px;border-radius:2px;font-family:var(--f);font-size:13px;font-weight:500;outline:none;transition:border .15s;width:100%;-webkit-appearance:none;appearance:none}
 .field input::placeholder{color:var(--ink3)}
 .field input:focus,.field select:focus{border-color:var(--ink)}
 .field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23444' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px}
@@ -621,6 +621,9 @@ async function downloadPDF(){
     const cat=document.getElementById('category').value;
     const m2=document.getElementById('surface_m2').value.trim();
     const loc=document.getElementById('location_type').value;
+    const imgEl=document.getElementById('img-interior');
+    const renderUrl=(imgEl&&imgEl.style.display!=='none'&&imgEl.src)?imgEl.src:'';
+    if(renderUrl)window._kit.render_url=renderUrl;
     const res=await fetch('/api/pdf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kit:window._kit,brand_name:b,category:cat,surface_m2:m2,location_type:loc,country_name:C[selCode].name})});
     if(!res.ok)throw new Error();
     const blob=await res.blob();
@@ -642,6 +645,8 @@ async function sendEmail(){
     const cat=document.getElementById('category').value;
     const m2=document.getElementById('surface_m2').value.trim();
     const loc=document.getElementById('location_type').value;
+    const imgEl2=document.getElementById('img-interior');
+    if(imgEl2&&imgEl2.style.display!=='none'&&imgEl2.src)window._kit.render_url=imgEl2.src;
     const res=await fetch('/api/email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,kit:window._kit,brand_name:b,category:cat,surface_m2:m2,location_type:loc,country_name:C[selCode].name})});
     const data=await res.json();
     if(!res.ok||data.error)throw new Error(data.error||'Error');
