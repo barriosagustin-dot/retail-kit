@@ -1,307 +1,454 @@
 const PDFDocument = require('pdfkit');
 
-const PAGE_W  = 595.28;
-const PAGE_H  = 841.89;
-const ML      = 44;
-const CW      = PAGE_W - ML * 2;   // 507.28
+const PAGE_W = 595;
+const PAGE_H = 842;
+const ML     = 40;
+const CW     = PAGE_W - ML * 2; // 515
 
 const BLACK  = '#202121';
 const GRAY   = '#c9c9c9';
 const GRAY_M = '#888888';
 const WHITE  = '#ffffff';
+const RED    = '#8B2020';
 
-const FOOTER_Y = PAGE_H - 28;
+const FOOTER_Y    = PAGE_H - 38;
+const BODY_BOTTOM = FOOTER_Y - 8;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 async function fetchImage(url) {
   if (!url) return null;
   try {
-    const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    const r = await fetch(url, { signal: AbortSignal.timeout(10000) });
     if (!r.ok) return null;
     return Buffer.from(await r.arrayBuffer());
   } catch { return null; }
 }
 
 function footer(doc) {
-  doc.moveTo(ML, FOOTER_Y).lineTo(PAGE_W - ML, FOOTER_Y).strokeColor(GRAY).lineWidth(0.4).stroke();
-  doc.fontSize(6.5).font('Helvetica').fillColor(GRAY)
-    .text('Retail Kit — powered by wedo studio', ML, FOOTER_Y + 7, { lineBreak: false });
-  doc.fontSize(6.5).font('Helvetica').fillColor(GRAY)
-    .text('wedo-studio.com', ML, FOOTER_Y + 7, { width: CW, align: 'right', lineBreak: false });
+  doc.moveTo(ML, FOOTER_Y).lineTo(PAGE_W - ML, FOOTER_Y)
+    .strokeColor(GRAY).lineWidth(0.4).stroke();
+  doc.fontSize(7).font('Helvetica').fillColor(GRAY)
+    .text('Retail Kit — powered by wedo studio', ML, FOOTER_Y + 8, { lineBreak: false });
+  doc.fontSize(7).font('Helvetica').fillColor(GRAY)
+    .text('wedo-studio.com', ML, FOOTER_Y + 8, { width: CW, align: 'right', lineBreak: false });
 }
 
-function pageStripe(doc, brandName) {
-  doc.rect(0, 0, PAGE_W, 24).fillColor(BLACK).fill();
-  doc.fontSize(7).font('Helvetica-Bold').fillColor(WHITE)
-    .text(brandName.toUpperCase(), ML, 8, { lineBreak: false, characterSpacing: 0.4 });
-  doc.fontSize(6.5).font('Helvetica').fillColor(GRAY)
-    .text('RETAIL KIT · wedo studio', ML, 9, { width: CW, align: 'right', lineBreak: false });
-  doc.y = 32;
+function pageHeader(doc, brandName, sectionLabel) {
+  doc.rect(0, 0, PAGE_W, 28).fillColor(BLACK).fill();
+  doc.fontSize(7.5).font('Helvetica-Bold').fillColor(WHITE)
+    .text(brandName.toUpperCase(), ML, 10, { lineBreak: false, characterSpacing: 0.5 });
+  if (sectionLabel) {
+    doc.fontSize(7).font('Helvetica').fillColor(GRAY)
+      .text(sectionLabel, ML, 10, { width: CW, align: 'right', lineBreak: false });
+  }
+  doc.y = ML; // content starts at top margin (40)
 }
 
-function sec(doc, label) {
+function secLabel(doc, label) {
   const y = doc.y;
-  doc.fontSize(9).font('Helvetica-Bold').fillColor(BLACK)
-    .text(label, ML, y, { width: CW });
+  doc.fontSize(7.5).font('Helvetica-Bold').fillColor(GRAY_M)
+    .text(label.toUpperCase(), ML, y, { width: CW, characterSpacing: 1.3 });
   const ly = doc.y;
-  doc.moveTo(ML, ly).lineTo(ML + CW, ly).strokeColor(GRAY).lineWidth(0.4).stroke();
-  doc.y = ly + 6;
+  doc.moveTo(ML, ly).lineTo(ML + CW, ly).strokeColor(GRAY).lineWidth(0.5).stroke();
+  doc.y = ly + 9;
 }
+
+function renderInvestment(doc, inv) {
+  secLabel(doc, 'Estimación de inversión');
+
+  const rows = [
+    ['Construcción',  inv.construction_cost_usd],
+    ['Mobiliario',    inv.furniture_cost_usd],
+    ['Iluminación',   inv.lighting_cost_usd],
+    ['Cartelería',    inv.signage_cost_usd],
+    ['Otros',         inv.other_costs_usd],
+  ];
+
+  // Two-column layout
+  const colW2 = (CW - 14) / 2;
+  const col2X = ML + colW2 + 14;
+  let col0Y   = doc.y;
+  let col1Y   = doc.y;
+
+  rows.forEach(([lbl, val], i) => {
+    const col = i % 2;
+    const bx  = col === 0 ? ML : col2X;
+    const iy  = col === 0 ? col0Y : col1Y;
+
+    doc.fontSize(9).font('Helvetica').fillColor(GRAY_M)
+      .text(lbl, bx, iy, { width: colW2 * 0.5, lineBreak: false });
+    doc.fontSize(9).font('Helvetica-Bold').fillColor(BLACK)
+      .text(`USD ${val}`, bx, iy, { width: colW2, align: 'right', lineBreak: false });
+
+    const nextY = iy + 15;
+    doc.moveTo(bx, nextY).lineTo(bx + colW2, nextY).strokeColor(GRAY).lineWidth(0.3).stroke();
+
+    if (col === 0) col0Y = nextY + 5;
+    else           col1Y = nextY + 5;
+  });
+
+  doc.y = Math.max(col0Y, col1Y) + 8;
+
+  // Total box
+  const totY = doc.y;
+  doc.rect(ML, totY, CW, 42).fillColor(BLACK).fill();
+  doc.fontSize(7).font('Helvetica-Bold').fillColor(GRAY)
+    .text('TOTAL ESTIMADO', ML + 14, totY + 9, { characterSpacing: 1.5, lineBreak: false });
+  doc.fontSize(20).font('Helvetica-Bold').fillColor(WHITE)
+    .text(`USD ${inv.total_estimated_usd}`, ML + 14, totY + 19, { lineBreak: false });
+  doc.fontSize(7.5).font('Helvetica').fillColor(GRAY)
+    .text(`USD ${inv.cost_per_m2_usd} / m²`, ML, totY + 27, { width: CW - 14, align: 'right', lineBreak: false });
+  doc.y = totY + 42;
+}
+
+// ─── Main builder ─────────────────────────────────────────────────────────────
 
 function buildPDF(doc, kit, meta, imgBuf) {
   const { brand_name, category, surface_m2, location_type, country_name } = meta;
-  const ps = kit.project_summary;
+  const ps  = kit.project_summary;
+  const inv = kit.investment_estimate;
+  const rec = kit.strategic_recommendations;
 
-  // ─── PAGE 1 ────────────────────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════════════════════
+  // PAGE 1 — Header + Concepto + Layout
+  // ════════════════════════════════════════════════════════════════════════════
 
-  // Main header — black bar
-  const hh = 88;
+  // Black header bar
+  const hh = 102;
   doc.rect(0, 0, PAGE_W, hh).fillColor(BLACK).fill();
 
-  // WEDO logo (left)
-  doc.fontSize(21).font('Helvetica').fillColor(WHITE)
-    .text('wedo', ML, 18, { lineBreak: false });
-  doc.fontSize(5.5).font('Helvetica-Bold').fillColor(GRAY)
-    .text('STUDIO', ML, 46, { characterSpacing: 3.5, lineBreak: false });
+  // WEDO logo — left column
+  doc.fontSize(30).font('Helvetica').fillColor(WHITE)
+    .text('wedo', ML, 22, { lineBreak: false });
+  doc.fontSize(6).font('Helvetica-Bold').fillColor(GRAY)
+    .text('STUDIO', ML, 60, { characterSpacing: 4.5, lineBreak: false });
 
-  // Separator
-  doc.moveTo(ML + 72, 14).lineTo(ML + 72, hh - 14).strokeColor('#3a3a3a').lineWidth(0.5).stroke();
+  // Vertical separator
+  doc.moveTo(ML + 90, 16).lineTo(ML + 90, hh - 16)
+    .strokeColor('#3d3d3d').lineWidth(0.6).stroke();
 
-  // Brand info (right of separator)
-  const bx = ML + 86;
+  // Brand info
+  const bx = ML + 106;
   const bw = PAGE_W - bx - ML;
-  doc.fontSize(6.5).font('Helvetica-Bold').fillColor(GRAY)
-    .text('RETAIL KIT', bx, 17, { width: bw, characterSpacing: 1.5, lineBreak: false });
-  doc.fontSize(20).font('Helvetica-Bold').fillColor(WHITE)
-    .text(brand_name, bx, 28, { width: bw, lineBreak: false });
-  doc.fontSize(7.5).font('Helvetica').fillColor(GRAY)
-    .text(`${category}  ·  ${surface_m2}m²  ·  ${location_type}  ·  ${country_name}`, bx, 60, { width: bw, lineBreak: false });
+  doc.fontSize(7).font('Helvetica-Bold').fillColor(GRAY)
+    .text('RETAIL KIT', bx, 22, { width: bw, characterSpacing: 2, lineBreak: false });
+  doc.fontSize(22).font('Helvetica-Bold').fillColor(WHITE)
+    .text(brand_name, bx, 35, { width: bw, lineBreak: false });
+  doc.fontSize(8).font('Helvetica').fillColor(GRAY)
+    .text(`${category}  ·  ${surface_m2} m²  ·  ${location_type}  ·  ${country_name}`,
+      bx, 68, { width: bw, lineBreak: false });
 
-  doc.y = hh + 14;
+  doc.y = hh + 18;
 
-  // ── CONCEPTO ─────────────────────────────────────────────────────
-  sec(doc, 'Concepto del proyecto');
-  doc.fontSize(11).font('Helvetica').fillColor(BLACK)
-    .text(ps.concept, ML, doc.y, { width: CW, lineGap: 2 });
-  doc.y += 10;
+  // ── CONCEPTO ──────────────────────────────────────────────────────────────
+  secLabel(doc, 'Concepto del proyecto');
 
-  const colW  = (CW - 10) / 2;
-  const col2x = ML + colW + 10;
-  const bY    = doc.y;
-  const bPad  = 8;
+  doc.fontSize(12).font('Helvetica').fillColor(BLACK)
+    .text(ps.concept, ML, doc.y, { width: CW, lineGap: 3 });
+  doc.y += 16;
+
+  // Two-column blocks: target experience + design intent
+  const colW  = (CW - 12) / 2;
+  const col2x = ML + colW + 12;
+  const bPad  = 10;
+  const blockY = doc.y;
 
   for (const [bx2, lbl, txt] of [
     [ML,    'EXPERIENCIA OBJETIVO', ps.target_experience],
     [col2x, 'INTENCIÓN DE DISEÑO',  ps.design_intent],
   ]) {
-    doc.rect(bx2, bY, colW, 13).fillColor(BLACK).fill();
+    doc.rect(bx2, blockY, colW, 14).fillColor(BLACK).fill();
     doc.fontSize(6).font('Helvetica-Bold').fillColor(WHITE)
-      .text(lbl, bx2 + bPad, bY + 3.5, { width: colW - bPad * 2, characterSpacing: 0.5, lineBreak: false });
+      .text(lbl, bx2 + bPad, blockY + 4, { width: colW - bPad * 2, characterSpacing: 0.6, lineBreak: false });
     doc.fontSize(8.5).font('Helvetica').fillColor(BLACK)
-      .text(txt, bx2 + bPad, bY + 17, { width: colW - bPad * 2, lineGap: 2 });
+      .text(txt, bx2 + bPad, blockY + 20, { width: colW - bPad * 2, lineGap: 2.5 });
   }
-  const lH = doc.heightOfString(ps.target_experience, { width: colW - bPad * 2, lineGap: 2 });
-  const rH = doc.heightOfString(ps.design_intent,     { width: colW - bPad * 2, lineGap: 2 });
-  doc.y = bY + 17 + Math.max(lH, rH) + 14;
+  doc.fontSize(8.5).font('Helvetica');
+  const lH = doc.heightOfString(ps.target_experience, { width: colW - bPad * 2, lineGap: 2.5 });
+  const rH = doc.heightOfString(ps.design_intent,     { width: colW - bPad * 2, lineGap: 2.5 });
+  doc.y = blockY + 20 + Math.max(lH, rH) + 20;
 
-  // ── LAYOUT ───────────────────────────────────────────────────────
-  sec(doc, 'Layout y circulación');
+  // ── LAYOUT ────────────────────────────────────────────────────────────────
+  secLabel(doc, 'Layout y circulación');
 
-  doc.fontSize(6.5).font('Helvetica-Bold').fillColor(GRAY)
-    .text(`DISTRIBUCIÓN DE ZONAS — ${surface_m2}m²`, ML, doc.y, { characterSpacing: 0.8, lineBreak: false });
-  doc.y += 11;
+  // Zones
+  doc.fontSize(7).font('Helvetica-Bold').fillColor(GRAY_M)
+    .text(`DISTRIBUCIÓN DE ZONAS — ${surface_m2} m²`, ML, doc.y, { characterSpacing: 0.8, lineBreak: false });
+  doc.y += 13;
+
+  const pctW  = 65;
+  const nameW = 160;
+  const descW = CW - pctW - nameW;
 
   kit.layout.zones.forEach((z, i) => {
     const zy = doc.y;
-    doc.fontSize(14).font('Helvetica-Bold').fillColor(BLACK)
-      .text(z.approx_percentage, ML, zy, { width: 52, lineBreak: false });
-    doc.fontSize(8.5).font('Helvetica-Bold').fillColor(BLACK)
-      .text(z.name, ML + 56, zy + 3, { width: 140, lineBreak: false });
-    doc.fontSize(8).font('Helvetica').fillColor(GRAY_M)
-      .text(z.description, ML + 200, zy + 3, { width: CW - 200, lineGap: 1.5 });
-    const dH = doc.heightOfString(z.description, { width: CW - 200, lineGap: 1.5 });
-    doc.y = zy + Math.max(20, dH + 8);
+    doc.fontSize(17).font('Helvetica-Bold').fillColor(BLACK)
+      .text(z.approx_percentage, ML, zy, { width: pctW, lineBreak: false });
+    doc.fontSize(9.5).font('Helvetica-Bold').fillColor(BLACK)
+      .text(z.name, ML + pctW, zy + 4, { width: nameW, lineBreak: false });
+    doc.fontSize(8.5).font('Helvetica').fillColor(GRAY_M)
+      .text(z.description, ML + pctW + nameW, zy + 4, { width: descW, lineGap: 2 });
+    doc.fontSize(8.5).font('Helvetica');
+    const dH = doc.heightOfString(z.description, { width: descW, lineGap: 2 });
+    doc.y = zy + Math.max(24, dH + 10);
     if (i < kit.layout.zones.length - 1) {
       doc.moveTo(ML, doc.y).lineTo(ML + CW, doc.y).strokeColor(GRAY).lineWidth(0.3).stroke();
-      doc.y += 3;
+      doc.y += 5;
     }
   });
+  doc.y += 16;
+
+  // Flujo de clientes
+  doc.fontSize(7).font('Helvetica-Bold').fillColor(GRAY_M)
+    .text('FLUJO DE CLIENTES', ML, doc.y, { characterSpacing: 0.8, lineBreak: false });
   doc.y += 10;
+  doc.fontSize(9).font('Helvetica').fillColor(BLACK)
+    .text(kit.layout.customer_flow, ML, doc.y, { width: CW, lineGap: 2.5 });
+  doc.y += 16;
 
-  // Flow + Points — two columns
-  const flowW = CW * 0.46;
-  const ptsX  = ML + flowW + 12;
-  const ptsW  = CW - flowW - 12;
-  const twoY  = doc.y;
+  // Puntos estratégicos — numbered, each with correct margin
+  doc.fontSize(7).font('Helvetica-Bold').fillColor(GRAY_M)
+    .text('PUNTOS ESTRATÉGICOS CLAVE', ML, doc.y, { characterSpacing: 0.8, lineBreak: false });
+  doc.y += 11;
 
-  doc.fontSize(6).font('Helvetica-Bold').fillColor(GRAY)
-    .text('FLUJO DE CLIENTES', ML, twoY, { characterSpacing: 0.8, lineBreak: false });
-  doc.fontSize(8.5).font('Helvetica').fillColor(BLACK)
-    .text(kit.layout.customer_flow, ML, twoY + 10, { width: flowW, lineGap: 2 });
-  const flowH = doc.heightOfString(kit.layout.customer_flow, { width: flowW, lineGap: 2 });
-
-  doc.fontSize(6).font('Helvetica-Bold').fillColor(GRAY)
-    .text('PUNTOS ESTRATÉGICOS', ptsX, twoY, { width: ptsW, characterSpacing: 0.8, lineBreak: false });
-  let ptsEndY = twoY + 10;
   kit.layout.key_strategic_points.forEach((p, i) => {
-    doc.fontSize(7.5).font('Helvetica-Bold').fillColor(GRAY)
-      .text(String(i + 1).padStart(2, '0'), ptsX, ptsEndY, { width: 14, lineBreak: false });
-    doc.fontSize(8).font('Helvetica').fillColor(BLACK)
-      .text(p, ptsX + 16, ptsEndY, { width: ptsW - 16, lineGap: 1.5 });
-    ptsEndY += doc.heightOfString(p, { width: ptsW - 16, lineGap: 1.5 }) + 7;
+    const py = doc.y;
+    doc.fontSize(8.5).font('Helvetica-Bold').fillColor(GRAY)
+      .text(String(i + 1).padStart(2, '0'), ML, py, { width: 22, lineBreak: false });
+    doc.fontSize(9).font('Helvetica').fillColor(BLACK)
+      .text(p, ML + 24, py, { width: CW - 24, lineGap: 2 });
+    doc.fontSize(9).font('Helvetica');
+    const pH = doc.heightOfString(p, { width: CW - 24, lineGap: 2 });
+    doc.y = py + pH + 9;
   });
-
-  doc.y = twoY + 10 + Math.max(flowH, ptsEndY - twoY - 10) + 14;
-
-  // ── RENDER IMAGE (page 1, if it fits) ────────────────────────────
-  let imgPlaced = false;
-  if (imgBuf) {
-    const space = FOOTER_Y - doc.y - 18;
-    if (space >= 120) {
-      sec(doc, 'Render del local');
-      const imgH = Math.min(Math.round(CW * 9 / 16), Math.floor(space));
-      try {
-        const startY = doc.y;
-        doc.image(imgBuf, ML, startY, { width: CW, height: imgH });
-        doc.y = startY + imgH;
-        imgPlaced = true;
-      } catch { /* unsupported format — skip */ }
-    }
-  }
 
   footer(doc);
 
-  // ─── PAGE 2 ────────────────────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════════════════════
+  // PAGE 2 — Render Image + Mobiliario + Inversión
+  // ════════════════════════════════════════════════════════════════════════════
   doc.addPage({ margin: 0 });
-  pageStripe(doc, brand_name);
+  pageHeader(doc, brand_name, 'MOBILIARIO E INVERSIÓN');
 
-  // ── MOBILIARIO ───────────────────────────────────────────────────
-  sec(doc, 'Mobiliario y equipamiento');
-  const cw4 = [Math.round(CW - 140), 30, 56, 54];
+  // Render image — full content width
+  if (imgBuf) {
+    const imgH = Math.round(CW * 9 / 16); // 290px for 515px wide
+    try {
+      doc.image(imgBuf, ML, doc.y, { width: CW, height: imgH });
+      doc.y += imgH + 20;
+    } catch { /* skip if format unsupported */ }
+  } else {
+    doc.y += 8;
+  }
+
+  // ── MOBILIARIO ────────────────────────────────────────────────────────────
+  secLabel(doc, 'Mobiliario y equipamiento');
+
+  // Column widths — sum = CW = 515
+  const itemW  = CW - 44 - 104 - 104; // 263
+  const qtyW   = 44;
+  const unitW  = 104;
+  const totalW = 104;
+  const cw4    = [itemW, qtyW, unitW, totalW];
+  const tPad   = 7;
+
   let ty = doc.y;
 
-  doc.rect(ML, ty, CW, 15).fillColor(BLACK).fill();
-  doc.fontSize(6.5).font('Helvetica-Bold').fillColor(WHITE);
-  let tx = ML + 6;
+  // Header row
+  doc.rect(ML, ty, CW, 20).fillColor(BLACK).fill();
+  doc.fontSize(7).font('Helvetica-Bold').fillColor(WHITE);
+  let colX = ML;
   [['ÍTEM', 'left'], ['CANT.', 'center'], ['UNIT. USD', 'right'], ['TOTAL USD', 'right']].forEach(([h, a], i) => {
-    doc.text(h, tx, ty + 4, { width: cw4[i] - 6, align: a, lineBreak: false, characterSpacing: 0.4 });
-    tx += cw4[i];
+    doc.text(h, colX + tPad, ty + 6, { width: cw4[i] - tPad * 2, align: a, lineBreak: false, characterSpacing: 0.5 });
+    colX += cw4[i];
   });
-  ty += 15;
+  ty += 20;
 
+  // Data rows with text wrap in item column
+  doc.fontSize(8.5).font('Helvetica');
   kit.furniture_and_equipment.forEach((f, i) => {
-    const rh = 13;
-    if (i % 2 === 0) doc.rect(ML, ty, CW, rh).fillColor('#f5f5f5').fill();
-    doc.fontSize(8).font('Helvetica').fillColor(BLACK);
-    tx = ML + 6;
-    [[f.item, 'left'], [String(f.quantity), 'center'],
-     [String(f.estimated_unit_cost_usd), 'right'], [String(f.total_cost_usd), 'right'],
-    ].forEach(([cell, a], j) => {
-      doc.text(cell, tx, ty + 3, { width: cw4[j] - 6, align: a, lineBreak: false });
-      tx += cw4[j];
-    });
-    ty += rh;
-  });
-  doc.rect(ML, ty, CW, 0.5).fillColor(GRAY).fill();
-  doc.y = ty + 12;
+    const itemH = doc.heightOfString(String(f.item), { width: itemW - tPad * 2, lineGap: 2 });
+    const rowH  = Math.max(itemH + tPad * 2, 22);
 
-  // ── INVERSIÓN ────────────────────────────────────────────────────
-  sec(doc, 'Estimación de inversión');
-  const inv = kit.investment_estimate;
+    if (i % 2 === 0) doc.rect(ML, ty, CW, rowH).fillColor('#f5f5f5').fill();
 
-  [['Construcción', inv.construction_cost_usd],
-   ['Mobiliario',   inv.furniture_cost_usd],
-   ['Iluminación',  inv.lighting_cost_usd],
-   ['Cartelería',   inv.signage_cost_usd],
-   ['Otros',        inv.other_costs_usd],
-  ].forEach(([lbl, val]) => {
-    const ry = doc.y;
+    // Item (wraps)
     doc.fontSize(8.5).font('Helvetica').fillColor(BLACK)
-      .text(lbl, ML, ry, { width: CW * 0.6, lineBreak: false });
+      .text(String(f.item), ML + tPad, ty + tPad, { width: itemW - tPad * 2, lineGap: 2 });
+    // Qty
+    doc.fontSize(8.5).font('Helvetica').fillColor(BLACK)
+      .text(String(f.quantity), ML + itemW + tPad, ty + tPad, { width: qtyW - tPad * 2, align: 'center', lineBreak: false });
+    // Unit USD
+    doc.fontSize(8.5).font('Helvetica').fillColor(BLACK)
+      .text(`USD ${f.estimated_unit_cost_usd}`, ML + itemW + qtyW + tPad, ty + tPad, { width: unitW - tPad * 2, align: 'right', lineBreak: false });
+    // Total USD
     doc.fontSize(8.5).font('Helvetica-Bold').fillColor(BLACK)
-      .text(`USD ${val}`, ML, ry, { width: CW, align: 'right', lineBreak: false });
-    doc.y = ry + 12;
-    doc.moveTo(ML, doc.y).lineTo(ML + CW, doc.y).strokeColor(GRAY).lineWidth(0.3).stroke();
-    doc.y += 4;
+      .text(`USD ${f.total_cost_usd}`, ML + itemW + qtyW + unitW + tPad, ty + tPad, { width: totalW - tPad * 2, align: 'right', lineBreak: false });
+
+    ty += rowH;
   });
 
-  const totY = doc.y + 4;
-  doc.rect(ML, totY, CW, 36).fillColor(BLACK).fill();
-  doc.fontSize(6.5).font('Helvetica-Bold').fillColor(GRAY)
-    .text('TOTAL ESTIMADO', ML + 12, totY + 7, { characterSpacing: 1.2, lineBreak: false });
-  doc.fontSize(18).font('Helvetica-Bold').fillColor(WHITE)
-    .text(`USD ${inv.total_estimated_usd}`, ML + 12, totY + 17, { lineBreak: false });
-  doc.fontSize(7).font('Helvetica').fillColor(GRAY)
-    .text(`USD ${inv.cost_per_m2_usd} / m²`, ML, totY + 22, { width: CW - 12, align: 'right', lineBreak: false });
-  doc.y = totY + 36 + 12;
+  doc.rect(ML, ty, CW, 0.5).fillColor(GRAY).fill();
+  doc.y = ty + 16;
 
-  // ── CRONOGRAMA ───────────────────────────────────────────────────
-  sec(doc, 'Cronograma de ejecución');
+  // Investment — on page 2 if space allows, otherwise deferred to page 3
+  const invFits = doc.y + 130 < BODY_BOTTOM;
+  if (invFits) renderInvestment(doc, inv);
+
+  footer(doc);
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // PAGE 3 — Cronograma
+  // ════════════════════════════════════════════════════════════════════════════
+  doc.addPage({ margin: 0 });
+  pageHeader(doc, brand_name, 'CRONOGRAMA');
+
+  // Investment overflow from page 2
+  if (!invFits) {
+    renderInvestment(doc, inv);
+    doc.y += 20;
+  }
+
+  secLabel(doc, 'Cronograma de ejecución');
 
   kit.timeline.forEach((t, i) => {
     const ty2 = doc.y;
-    const cx  = ML + 7;
-    doc.circle(cx, ty2 + 7, 7).fillColor(BLACK).fill();
-    doc.fontSize(7.5).font('Helvetica-Bold').fillColor(WHITE)
-      .text(String(i + 1), cx - 7, ty2 + 3, { width: 14, align: 'center', lineBreak: false });
-    doc.fontSize(6.5).font('Helvetica-Bold').fillColor(GRAY)
-      .text(`${t.duration_weeks}w`, ML + 20, ty2 + 1, { lineBreak: false, characterSpacing: 0.3 });
-    doc.fontSize(9).font('Helvetica-Bold').fillColor(BLACK)
-      .text(t.phase, ML + 38, ty2, { width: CW - 38, lineBreak: false });
-    doc.fontSize(8).font('Helvetica').fillColor(GRAY_M)
-      .text(t.description, ML + 20, ty2 + 13, { width: CW - 20, lineGap: 1.5 });
-    const dH = doc.heightOfString(t.description, { width: CW - 20, lineGap: 1.5 });
-    const nextY = ty2 + 13 + dH + 10;
+    const cx  = ML + 11;
+    const r   = 11;
+
+    // Circle
+    doc.circle(cx, ty2 + r, r).fillColor(BLACK).fill();
+    doc.fontSize(9).font('Helvetica-Bold').fillColor(WHITE)
+      .text(String(i + 1), cx - r, ty2 + r - 6, { width: r * 2, align: 'center', lineBreak: false });
+
+    // Duration
+    doc.fontSize(7).font('Helvetica-Bold').fillColor(GRAY_M)
+      .text(`${t.duration_weeks} SEMANAS`, ML + 30, ty2 + 2, { characterSpacing: 0.5, lineBreak: false });
+
+    // Phase name
+    doc.fontSize(13).font('Helvetica-Bold').fillColor(BLACK)
+      .text(t.phase, ML + 30, ty2 + 14, { width: CW - 30, lineBreak: false });
+
+    // Description
+    doc.fontSize(9).font('Helvetica').fillColor(GRAY_M)
+      .text(t.description, ML + 30, ty2 + 32, { width: CW - 30, lineGap: 3 });
+    doc.fontSize(9).font('Helvetica');
+    const dH    = doc.heightOfString(t.description, { width: CW - 30, lineGap: 3 });
+    const nextY = ty2 + 32 + dH + 22;
+
+    // Dashed connector to next phase
     if (i < kit.timeline.length - 1) {
-      doc.moveTo(cx, ty2 + 15).lineTo(cx, nextY - 4)
-        .strokeColor(GRAY).lineWidth(0.6).dash(2, { space: 2 }).stroke().undash();
+      doc.moveTo(cx, ty2 + r * 2 + 2).lineTo(cx, nextY - 4)
+        .strokeColor(GRAY).lineWidth(0.8).dash(3, { space: 3 }).stroke().undash();
     }
+
     doc.y = nextY;
   });
-  doc.y += 4;
-
-  // ── RECOMENDACIONES ──────────────────────────────────────────────
-  sec(doc, 'Recomendaciones estratégicas');
-  const rec = kit.strategic_recommendations;
-
-  [['DECISIONES CLAVE',       rec.key_decisions,    BLACK],
-   ['OPTIMIZACIÓN DE COSTOS', rec.cost_optimization, GRAY_M],
-   ['RIESGOS A EVITAR',       rec.risks_to_avoid,   '#8B2020'],
-  ].forEach(([title, items, accent]) => {
-    doc.fontSize(6).font('Helvetica-Bold').fillColor(GRAY)
-      .text(title, ML, doc.y, { width: CW, characterSpacing: 1, lineBreak: false });
-    doc.y += 9;
-    items.forEach(item => {
-      const iy = doc.y;
-      const ih = doc.heightOfString(item, { width: CW - 14, lineGap: 1.5 });
-      doc.rect(ML, iy, 2, ih + 4).fillColor(accent).fill();
-      doc.fontSize(8).font('Helvetica').fillColor(BLACK)
-        .text(item, ML + 10, iy + 2, { width: CW - 14, lineGap: 1.5 });
-      doc.y = iy + ih + 9;
-    });
-    doc.y += 4;
-  });
-
-  // ── RENDER IMAGE (page 2, if not yet placed and space available) ──
-  if (imgBuf && !imgPlaced) {
-    const space2 = FOOTER_Y - doc.y - 18;
-    if (space2 >= 100) {
-      sec(doc, 'Render del local');
-      const imgH2 = Math.min(Math.round(CW * 9 / 16), Math.floor(space2));
-      try {
-        const startY2 = doc.y;
-        doc.image(imgBuf, ML, startY2, { width: CW, height: imgH2 });
-        doc.y = startY2 + imgH2;
-      } catch { /* skip */ }
-    }
-  }
 
   footer(doc);
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // PAGE 4 — Recomendaciones estratégicas
+  // ════════════════════════════════════════════════════════════════════════════
+  doc.addPage({ margin: 0 });
+  pageHeader(doc, brand_name, 'RECOMENDACIONES');
+
+  secLabel(doc, 'Recomendaciones estratégicas');
+
+  const recGroups = [
+    { title: 'Decisiones clave',       items: rec.key_decisions,     accent: BLACK,  bg: '#f0f0f0' },
+    { title: 'Optimización de costos', items: rec.cost_optimization,  accent: GRAY_M, bg: '#f7f7f7' },
+    { title: 'Riesgos a evitar',       items: rec.risks_to_avoid,    accent: RED,    bg: '#fdf5f5' },
+  ];
+
+  recGroups.forEach(({ title, items, accent, bg }, gi) => {
+    // Group title bar
+    const gty = doc.y;
+    doc.rect(ML, gty, CW, 22).fillColor(accent).fill();
+    doc.fontSize(8).font('Helvetica-Bold').fillColor(WHITE)
+      .text(title.toUpperCase(), ML + 14, gty + 7, { width: CW - 28, characterSpacing: 0.8, lineBreak: false });
+    doc.y = gty + 22;
+
+    items.forEach((item, i) => {
+      const iy = doc.y;
+      doc.fontSize(8.5).font('Helvetica');
+      const ih  = doc.heightOfString(item, { width: CW - 42, lineGap: 2.5 });
+      const rh  = Math.max(ih + 14, 26);
+
+      if (i % 2 === 0) doc.rect(ML, iy, CW, rh).fillColor(bg).fill();
+      // Accent left bar
+      doc.rect(ML, iy, 3, rh).fillColor(accent).fill();
+      // Item number
+      doc.fontSize(8).font('Helvetica-Bold').fillColor(accent)
+        .text(String(i + 1).padStart(2, '0'), ML + 10, iy + (rh - 9) / 2, { lineBreak: false });
+      // Item text
+      doc.fontSize(8.5).font('Helvetica').fillColor(BLACK)
+        .text(item, ML + 28, iy + 7, { width: CW - 42, lineGap: 2.5 });
+      doc.y = iy + rh;
+    });
+
+    if (gi < recGroups.length - 1) doc.y += 14;
+  });
+
+  footer(doc);
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // PAGE 5 — Branding / Cierre
+  // ════════════════════════════════════════════════════════════════════════════
+  doc.addPage({ margin: 0 });
+
+  // Top accent line
+  doc.rect(0, 0, PAGE_W, 5).fillColor(BLACK).fill();
+
+  // Centered WEDO logo — large
+  const logoY = 190;
+  doc.fontSize(80).font('Helvetica').fillColor(BLACK)
+    .text('wedo', ML, logoY, { width: CW, align: 'center', lineBreak: false });
+  doc.fontSize(10).font('Helvetica-Bold').fillColor(GRAY_M)
+    .text('STUDIO', ML, logoY + 82, { width: CW, align: 'center', characterSpacing: 10, lineBreak: false });
+
+  // Horizontal separator
+  const sepW = CW * 0.35;
+  const sepX = ML + (CW - sepW) / 2;
+  doc.moveTo(sepX, logoY + 106).lineTo(sepX + sepW, logoY + 106)
+    .strokeColor(GRAY).lineWidth(0.6).stroke();
+
+  // Retail Kit label
+  doc.fontSize(11).font('Helvetica').fillColor(GRAY_M)
+    .text('Retail Kit', ML, logoY + 120, { width: CW, align: 'center', lineBreak: false });
+  doc.fontSize(9).font('Helvetica').fillColor(GRAY)
+    .text('Análisis profesional para locales comerciales', ML, logoY + 138, { width: CW, align: 'center', lineBreak: false });
+
+  // Brand name
+  doc.fontSize(11).font('Helvetica-Bold').fillColor(BLACK)
+    .text(brand_name, ML, logoY + 166, { width: CW, align: 'center', lineBreak: false });
+  doc.fontSize(8.5).font('Helvetica').fillColor(GRAY_M)
+    .text(`${category}  ·  ${country_name}`, ML, logoY + 183, { width: CW, align: 'center', lineBreak: false });
+
+  // Bottom black strip (acts as footer for page 5)
+  const stripY = PAGE_H - 70;
+  doc.rect(0, stripY, PAGE_W, 70).fillColor(BLACK).fill();
+  doc.fontSize(11).font('Helvetica-Bold').fillColor(WHITE)
+    .text('wedo-studio.com', ML, stripY + 20, { width: CW, align: 'center', lineBreak: false });
+  doc.fontSize(7.5).font('Helvetica').fillColor(GRAY)
+    .text('Diseño comercial  ·  Expansión de retail  ·  Análisis de locales', ML, stripY + 38, { width: CW, align: 'center', lineBreak: false });
+
+  // Footer line above strip (page 5)
+  doc.moveTo(ML, FOOTER_Y).lineTo(PAGE_W - ML, FOOTER_Y)
+    .strokeColor('#3a3a3a').lineWidth(0.4).stroke();
+  doc.fontSize(7).font('Helvetica').fillColor(GRAY)
+    .text('Retail Kit — powered by wedo studio', ML, FOOTER_Y + 8, { lineBreak: false });
+  doc.fontSize(7).font('Helvetica').fillColor(GRAY)
+    .text('wedo-studio.com', ML, FOOTER_Y + 8, { width: CW, align: 'right', lineBreak: false });
 }
+
+// ─── Public API ───────────────────────────────────────────────────────────────
 
 async function generateBuffer(kit, meta) {
   const imgBuf = await fetchImage(kit.render_url || null);
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 0, size: 'A4', autoFirstPage: true });
+    const doc = new PDFDocument({ margin: 0, size: [595, 842], autoFirstPage: true });
     const chunks = [];
     doc.on('data', chunk => chunks.push(chunk));
     doc.on('end',  () => resolve(Buffer.concat(chunks)));
