@@ -517,29 +517,28 @@ async function step1Submit(){
   const m2=document.getElementById('surface_m2').value.trim();
   const loc=document.getElementById('location_type').value;
   if(!b||!cat||!m2||!loc){showErr('error-box','Completá todos los campos para continuar.');return;}
+
   document.getElementById('step1').style.display='none';
-  document.getElementById('loader').style.display='block';
-  setTimeout(()=>{
-    document.getElementById('loader').style.display='none';
-    document.getElementById('skeleton-result').style.display='block';
-    document.getElementById('steps-wrap').style.display='none';
-    setStep(2);
-    document.getElementById('skeleton-result').scrollIntoView({behavior:'smooth'});
-  },800);
+  document.getElementById('skeleton-result').style.display='block';
+  setStep(2);
+  document.getElementById('skeleton-result').scrollIntoView({behavior:'smooth'});
+
   try {
     const res=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brand_name:b,category:cat,surface_m2:m2,location_type:loc,country_name:C[selCode].name,brand_positioning:'Medio-alto',budget_level:'Medio',opening_deadline_days:90,main_objective:'Maximizar conversión y ticket promedio'})});
     const kit=await res.json();
     if(kit.error)throw new Error(kit.error);
-    document.getElementById('loader').style.display='none';
+    document.getElementById('skeleton-result').style.display='none';
     document.getElementById('steps-wrap').style.display='none';
-    setStep(2);
     renderPrelim(kit,b,cat,m2,loc,selCode);
-    document.getElementById('result').style.display='block';
-    document.getElementById('result').scrollIntoView({behavior:'smooth'});
+    const r=document.getElementById('result');
+    r.style.opacity='0';r.style.transition='opacity .35s ease';r.style.display='block';
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{r.style.opacity='1';}));
+    r.scrollIntoView({behavior:'smooth'});
     window._kit=kit;
   } catch(e){
-    document.getElementById('loader').style.display='none';
+    document.getElementById('skeleton-result').style.display='none';
     document.getElementById('step1').style.display='block';
+    setStep(1);
     showErr('error-box','Error generando el análisis. Intentá nuevamente.');
   }
 }
