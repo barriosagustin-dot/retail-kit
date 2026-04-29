@@ -14,6 +14,8 @@ const RED    = '#8B2020';
 const FOOTER_Y    = PAGE_H - 38;
 const BODY_BOTTOM = FOOTER_Y - 8;
 
+const PAGE_SIZE = [595, 842];
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 async function fetchImage(url) {
@@ -42,7 +44,7 @@ function pageHeader(doc, brandName, sectionLabel) {
     doc.fontSize(7).font('Helvetica').fillColor(GRAY)
       .text(sectionLabel, ML, 10, { width: CW, align: 'right', lineBreak: false });
   }
-  doc.y = ML; // content starts at top margin (40)
+  doc.y = ML; // 40px top margin
 }
 
 function secLabel(doc, label) {
@@ -54,18 +56,27 @@ function secLabel(doc, label) {
   doc.y = ly + 9;
 }
 
-function renderInvestment(doc, inv) {
+// Guard: flush current page and open a fresh one if content exceeded BODY_BOTTOM
+function guard(doc, brandName, sectionLabel) {
+  if (doc.y > BODY_BOTTOM) {
+    footer(doc);
+    doc.addPage({ margin: 0, size: PAGE_SIZE });
+    pageHeader(doc, brandName, sectionLabel);
+  }
+}
+
+function renderInvestment(doc, inv, brandName) {
+  guard(doc, brandName, 'MOBILIARIO E INVERSIÓN');
   secLabel(doc, 'Estimación de inversión');
 
   const rows = [
-    ['Construcción',  inv.construction_cost_usd],
-    ['Mobiliario',    inv.furniture_cost_usd],
-    ['Iluminación',   inv.lighting_cost_usd],
-    ['Cartelería',    inv.signage_cost_usd],
-    ['Otros',         inv.other_costs_usd],
+    ['Construcción', inv.construction_cost_usd],
+    ['Mobiliario',   inv.furniture_cost_usd],
+    ['Iluminación',  inv.lighting_cost_usd],
+    ['Cartelería',   inv.signage_cost_usd],
+    ['Otros',        inv.other_costs_usd],
   ];
 
-  // Two-column layout
   const colW2 = (CW - 14) / 2;
   const col2X = ML + colW2 + 14;
   let col0Y   = doc.y;
@@ -90,7 +101,6 @@ function renderInvestment(doc, inv) {
 
   doc.y = Math.max(col0Y, col1Y) + 8;
 
-  // Total box
   const totY = doc.y;
   doc.rect(ML, totY, CW, 42).fillColor(BLACK).fill();
   doc.fontSize(7).font('Helvetica-Bold').fillColor(GRAY)
@@ -114,21 +124,18 @@ function buildPDF(doc, kit, meta, imgBuf) {
   // PAGE 1 — Header + Concepto + Layout
   // ════════════════════════════════════════════════════════════════════════════
 
-  // Black header bar
   const hh = 102;
   doc.rect(0, 0, PAGE_W, hh).fillColor(BLACK).fill();
 
-  // WEDO logo — left column
+  // WEDO logo
   doc.fontSize(30).font('Helvetica').fillColor(WHITE)
     .text('wedo', ML, 22, { lineBreak: false });
   doc.fontSize(6).font('Helvetica-Bold').fillColor(GRAY)
     .text('STUDIO', ML, 60, { characterSpacing: 4.5, lineBreak: false });
 
-  // Vertical separator
   doc.moveTo(ML + 90, 16).lineTo(ML + 90, hh - 16)
     .strokeColor('#3d3d3d').lineWidth(0.6).stroke();
 
-  // Brand info
   const bx = ML + 106;
   const bw = PAGE_W - bx - ML;
   doc.fontSize(7).font('Helvetica-Bold').fillColor(GRAY)
@@ -148,10 +155,10 @@ function buildPDF(doc, kit, meta, imgBuf) {
     .text(ps.concept, ML, doc.y, { width: CW, lineGap: 3 });
   doc.y += 16;
 
-  // Two-column blocks: target experience + design intent
-  const colW  = (CW - 12) / 2;
-  const col2x = ML + colW + 12;
-  const bPad  = 10;
+  // Two-column blocks
+  const colW   = (CW - 12) / 2;
+  const col2x  = ML + colW + 12;
+  const bPad   = 10;
   const blockY = doc.y;
 
   for (const [bx2, lbl, txt] of [
@@ -170,9 +177,9 @@ function buildPDF(doc, kit, meta, imgBuf) {
   doc.y = blockY + 20 + Math.max(lH, rH) + 20;
 
   // ── LAYOUT ────────────────────────────────────────────────────────────────
+  guard(doc, brand_name, 'LAYOUT Y CIRCULACIÓN');
   secLabel(doc, 'Layout y circulación');
 
-  // Zones
   doc.fontSize(7).font('Helvetica-Bold').fillColor(GRAY_M)
     .text(`DISTRIBUCIÓN DE ZONAS — ${surface_m2} m²`, ML, doc.y, { characterSpacing: 0.8, lineBreak: false });
   doc.y += 13;
@@ -182,6 +189,7 @@ function buildPDF(doc, kit, meta, imgBuf) {
   const descW = CW - pctW - nameW;
 
   kit.layout.zones.forEach((z, i) => {
+    guard(doc, brand_name, 'LAYOUT Y CIRCULACIÓN');
     const zy = doc.y;
     doc.fontSize(17).font('Helvetica-Bold').fillColor(BLACK)
       .text(z.approx_percentage, ML, zy, { width: pctW, lineBreak: false });
@@ -199,7 +207,7 @@ function buildPDF(doc, kit, meta, imgBuf) {
   });
   doc.y += 16;
 
-  // Flujo de clientes
+  guard(doc, brand_name, 'LAYOUT Y CIRCULACIÓN');
   doc.fontSize(7).font('Helvetica-Bold').fillColor(GRAY_M)
     .text('FLUJO DE CLIENTES', ML, doc.y, { characterSpacing: 0.8, lineBreak: false });
   doc.y += 10;
@@ -207,12 +215,13 @@ function buildPDF(doc, kit, meta, imgBuf) {
     .text(kit.layout.customer_flow, ML, doc.y, { width: CW, lineGap: 2.5 });
   doc.y += 16;
 
-  // Puntos estratégicos — numbered, each with correct margin
+  guard(doc, brand_name, 'LAYOUT Y CIRCULACIÓN');
   doc.fontSize(7).font('Helvetica-Bold').fillColor(GRAY_M)
     .text('PUNTOS ESTRATÉGICOS CLAVE', ML, doc.y, { characterSpacing: 0.8, lineBreak: false });
   doc.y += 11;
 
   kit.layout.key_strategic_points.forEach((p, i) => {
+    guard(doc, brand_name, 'LAYOUT Y CIRCULACIÓN');
     const py = doc.y;
     doc.fontSize(8.5).font('Helvetica-Bold').fillColor(GRAY)
       .text(String(i + 1).padStart(2, '0'), ML, py, { width: 22, lineBreak: false });
@@ -228,12 +237,11 @@ function buildPDF(doc, kit, meta, imgBuf) {
   // ════════════════════════════════════════════════════════════════════════════
   // PAGE 2 — Render Image + Mobiliario + Inversión
   // ════════════════════════════════════════════════════════════════════════════
-  doc.addPage({ margin: 0 });
+  doc.addPage({ margin: 0, size: PAGE_SIZE });
   pageHeader(doc, brand_name, 'MOBILIARIO E INVERSIÓN');
 
-  // Render image — full content width
   if (imgBuf) {
-    const imgH = Math.round(CW * 9 / 16); // 290px for 515px wide
+    const imgH = Math.round(CW * 9 / 16);
     try {
       doc.image(imgBuf, ML, doc.y, { width: CW, height: imgH });
       doc.y += imgH + 20;
@@ -243,9 +251,9 @@ function buildPDF(doc, kit, meta, imgBuf) {
   }
 
   // ── MOBILIARIO ────────────────────────────────────────────────────────────
+  guard(doc, brand_name, 'MOBILIARIO E INVERSIÓN');
   secLabel(doc, 'Mobiliario y equipamiento');
 
-  // Column widths — sum = CW = 515
   const itemW  = CW - 44 - 104 - 104; // 263
   const qtyW   = 44;
   const unitW  = 104;
@@ -255,7 +263,6 @@ function buildPDF(doc, kit, meta, imgBuf) {
 
   let ty = doc.y;
 
-  // Header row
   doc.rect(ML, ty, CW, 20).fillColor(BLACK).fill();
   doc.fontSize(7).font('Helvetica-Bold').fillColor(WHITE);
   let colX = ML;
@@ -265,24 +272,38 @@ function buildPDF(doc, kit, meta, imgBuf) {
   });
   ty += 20;
 
-  // Data rows with text wrap in item column
   doc.fontSize(8.5).font('Helvetica');
   kit.furniture_and_equipment.forEach((f, i) => {
+    // Guard: if this row won't fit, flush and open new page
+    if (ty > BODY_BOTTOM) {
+      doc.rect(ML, ty, CW, 0.5).fillColor(GRAY).fill();
+      footer(doc);
+      doc.addPage({ margin: 0, size: PAGE_SIZE });
+      pageHeader(doc, brand_name, 'MOBILIARIO E INVERSIÓN');
+      ty = doc.y;
+      // Reprint table header
+      doc.rect(ML, ty, CW, 20).fillColor(BLACK).fill();
+      doc.fontSize(7).font('Helvetica-Bold').fillColor(WHITE);
+      colX = ML;
+      [['ÍTEM', 'left'], ['CANT.', 'center'], ['UNIT. USD', 'right'], ['TOTAL USD', 'right']].forEach(([h, a], j) => {
+        doc.text(h, colX + tPad, ty + 6, { width: cw4[j] - tPad * 2, align: a, lineBreak: false, characterSpacing: 0.5 });
+        colX += cw4[j];
+      });
+      ty += 20;
+    }
+
+    doc.fontSize(8.5).font('Helvetica');
     const itemH = doc.heightOfString(String(f.item), { width: itemW - tPad * 2, lineGap: 2 });
     const rowH  = Math.max(itemH + tPad * 2, 22);
 
     if (i % 2 === 0) doc.rect(ML, ty, CW, rowH).fillColor('#f5f5f5').fill();
 
-    // Item (wraps)
     doc.fontSize(8.5).font('Helvetica').fillColor(BLACK)
       .text(String(f.item), ML + tPad, ty + tPad, { width: itemW - tPad * 2, lineGap: 2 });
-    // Qty
     doc.fontSize(8.5).font('Helvetica').fillColor(BLACK)
       .text(String(f.quantity), ML + itemW + tPad, ty + tPad, { width: qtyW - tPad * 2, align: 'center', lineBreak: false });
-    // Unit USD
     doc.fontSize(8.5).font('Helvetica').fillColor(BLACK)
       .text(`USD ${f.estimated_unit_cost_usd}`, ML + itemW + qtyW + tPad, ty + tPad, { width: unitW - tPad * 2, align: 'right', lineBreak: false });
-    // Total USD
     doc.fontSize(8.5).font('Helvetica-Bold').fillColor(BLACK)
       .text(`USD ${f.total_cost_usd}`, ML + itemW + qtyW + unitW + tPad, ty + tPad, { width: totalW - tPad * 2, align: 'right', lineBreak: false });
 
@@ -292,52 +313,46 @@ function buildPDF(doc, kit, meta, imgBuf) {
   doc.rect(ML, ty, CW, 0.5).fillColor(GRAY).fill();
   doc.y = ty + 16;
 
-  // Investment — on page 2 if space allows, otherwise deferred to page 3
   const invFits = doc.y + 130 < BODY_BOTTOM;
-  if (invFits) renderInvestment(doc, inv);
+  if (invFits) renderInvestment(doc, inv, brand_name);
 
   footer(doc);
 
   // ════════════════════════════════════════════════════════════════════════════
   // PAGE 3 — Cronograma
   // ════════════════════════════════════════════════════════════════════════════
-  doc.addPage({ margin: 0 });
+  doc.addPage({ margin: 0, size: PAGE_SIZE });
   pageHeader(doc, brand_name, 'CRONOGRAMA');
 
-  // Investment overflow from page 2
   if (!invFits) {
-    renderInvestment(doc, inv);
+    renderInvestment(doc, inv, brand_name);
     doc.y += 20;
   }
 
   secLabel(doc, 'Cronograma de ejecución');
 
   kit.timeline.forEach((t, i) => {
+    guard(doc, brand_name, 'CRONOGRAMA');
     const ty2 = doc.y;
     const cx  = ML + 11;
     const r   = 11;
 
-    // Circle
     doc.circle(cx, ty2 + r, r).fillColor(BLACK).fill();
     doc.fontSize(9).font('Helvetica-Bold').fillColor(WHITE)
       .text(String(i + 1), cx - r, ty2 + r - 6, { width: r * 2, align: 'center', lineBreak: false });
 
-    // Duration
     doc.fontSize(7).font('Helvetica-Bold').fillColor(GRAY_M)
       .text(`${t.duration_weeks} SEMANAS`, ML + 30, ty2 + 2, { characterSpacing: 0.5, lineBreak: false });
 
-    // Phase name
     doc.fontSize(13).font('Helvetica-Bold').fillColor(BLACK)
       .text(t.phase, ML + 30, ty2 + 14, { width: CW - 30, lineBreak: false });
 
-    // Description
     doc.fontSize(9).font('Helvetica').fillColor(GRAY_M)
       .text(t.description, ML + 30, ty2 + 32, { width: CW - 30, lineGap: 3 });
     doc.fontSize(9).font('Helvetica');
     const dH    = doc.heightOfString(t.description, { width: CW - 30, lineGap: 3 });
     const nextY = ty2 + 32 + dH + 22;
 
-    // Dashed connector to next phase
     if (i < kit.timeline.length - 1) {
       doc.moveTo(cx, ty2 + r * 2 + 2).lineTo(cx, nextY - 4)
         .strokeColor(GRAY).lineWidth(0.8).dash(3, { space: 3 }).stroke().undash();
@@ -351,19 +366,20 @@ function buildPDF(doc, kit, meta, imgBuf) {
   // ════════════════════════════════════════════════════════════════════════════
   // PAGE 4 — Recomendaciones estratégicas
   // ════════════════════════════════════════════════════════════════════════════
-  doc.addPage({ margin: 0 });
+  doc.addPage({ margin: 0, size: PAGE_SIZE });
   pageHeader(doc, brand_name, 'RECOMENDACIONES');
 
   secLabel(doc, 'Recomendaciones estratégicas');
 
   const recGroups = [
-    { title: 'Decisiones clave',       items: rec.key_decisions,     accent: BLACK,  bg: '#f0f0f0' },
-    { title: 'Optimización de costos', items: rec.cost_optimization,  accent: GRAY_M, bg: '#f7f7f7' },
-    { title: 'Riesgos a evitar',       items: rec.risks_to_avoid,    accent: RED,    bg: '#fdf5f5' },
+    { title: 'Decisiones clave',       items: rec.key_decisions,    accent: BLACK,  bg: '#f0f0f0' },
+    { title: 'Optimización de costos', items: rec.cost_optimization, accent: GRAY_M, bg: '#f7f7f7' },
+    { title: 'Riesgos a evitar',       items: rec.risks_to_avoid,   accent: RED,    bg: '#fdf5f5' },
   ];
 
   recGroups.forEach(({ title, items, accent, bg }, gi) => {
-    // Group title bar
+    guard(doc, brand_name, 'RECOMENDACIONES');
+
     const gty = doc.y;
     doc.rect(ML, gty, CW, 22).fillColor(accent).fill();
     doc.fontSize(8).font('Helvetica-Bold').fillColor(WHITE)
@@ -371,18 +387,16 @@ function buildPDF(doc, kit, meta, imgBuf) {
     doc.y = gty + 22;
 
     items.forEach((item, i) => {
+      guard(doc, brand_name, 'RECOMENDACIONES');
       const iy = doc.y;
       doc.fontSize(8.5).font('Helvetica');
       const ih  = doc.heightOfString(item, { width: CW - 42, lineGap: 2.5 });
       const rh  = Math.max(ih + 14, 26);
 
       if (i % 2 === 0) doc.rect(ML, iy, CW, rh).fillColor(bg).fill();
-      // Accent left bar
       doc.rect(ML, iy, 3, rh).fillColor(accent).fill();
-      // Item number
       doc.fontSize(8).font('Helvetica-Bold').fillColor(accent)
         .text(String(i + 1).padStart(2, '0'), ML + 10, iy + (rh - 9) / 2, { lineBreak: false });
-      // Item text
       doc.fontSize(8.5).font('Helvetica').fillColor(BLACK)
         .text(item, ML + 28, iy + 7, { width: CW - 42, lineGap: 2.5 });
       doc.y = iy + rh;
@@ -396,37 +410,31 @@ function buildPDF(doc, kit, meta, imgBuf) {
   // ════════════════════════════════════════════════════════════════════════════
   // PAGE 5 — Branding / Cierre
   // ════════════════════════════════════════════════════════════════════════════
-  doc.addPage({ margin: 0 });
+  doc.addPage({ margin: 0, size: PAGE_SIZE });
 
-  // Top accent line
   doc.rect(0, 0, PAGE_W, 5).fillColor(BLACK).fill();
 
-  // Centered WEDO logo — large
   const logoY = 190;
   doc.fontSize(80).font('Helvetica').fillColor(BLACK)
     .text('wedo', ML, logoY, { width: CW, align: 'center', lineBreak: false });
   doc.fontSize(10).font('Helvetica-Bold').fillColor(GRAY_M)
     .text('STUDIO', ML, logoY + 82, { width: CW, align: 'center', characterSpacing: 10, lineBreak: false });
 
-  // Horizontal separator
   const sepW = CW * 0.35;
   const sepX = ML + (CW - sepW) / 2;
   doc.moveTo(sepX, logoY + 106).lineTo(sepX + sepW, logoY + 106)
     .strokeColor(GRAY).lineWidth(0.6).stroke();
 
-  // Retail Kit label
   doc.fontSize(11).font('Helvetica').fillColor(GRAY_M)
     .text('Retail Kit', ML, logoY + 120, { width: CW, align: 'center', lineBreak: false });
   doc.fontSize(9).font('Helvetica').fillColor(GRAY)
     .text('Análisis profesional para locales comerciales', ML, logoY + 138, { width: CW, align: 'center', lineBreak: false });
 
-  // Brand name
   doc.fontSize(11).font('Helvetica-Bold').fillColor(BLACK)
     .text(brand_name, ML, logoY + 166, { width: CW, align: 'center', lineBreak: false });
   doc.fontSize(8.5).font('Helvetica').fillColor(GRAY_M)
     .text(`${category}  ·  ${country_name}`, ML, logoY + 183, { width: CW, align: 'center', lineBreak: false });
 
-  // Bottom black strip (acts as footer for page 5)
   const stripY = PAGE_H - 70;
   doc.rect(0, stripY, PAGE_W, 70).fillColor(BLACK).fill();
   doc.fontSize(11).font('Helvetica-Bold').fillColor(WHITE)
@@ -434,7 +442,7 @@ function buildPDF(doc, kit, meta, imgBuf) {
   doc.fontSize(7.5).font('Helvetica').fillColor(GRAY)
     .text('Diseño comercial  ·  Expansión de retail  ·  Análisis de locales', ML, stripY + 38, { width: CW, align: 'center', lineBreak: false });
 
-  // Footer line above strip (page 5)
+  // Footer on page 5 (above the black strip)
   doc.moveTo(ML, FOOTER_Y).lineTo(PAGE_W - ML, FOOTER_Y)
     .strokeColor('#3a3a3a').lineWidth(0.4).stroke();
   doc.fontSize(7).font('Helvetica').fillColor(GRAY)
@@ -448,7 +456,12 @@ function buildPDF(doc, kit, meta, imgBuf) {
 async function generateBuffer(kit, meta) {
   const imgBuf = await fetchImage(kit.render_url || null);
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 0, size: [595, 842], autoFirstPage: true });
+    const doc = new PDFDocument({
+      margin: 0,
+      size: PAGE_SIZE,
+      autoFirstPage: true,
+      bufferPages: true,
+    });
     const chunks = [];
     doc.on('data', chunk => chunks.push(chunk));
     doc.on('end',  () => resolve(Buffer.concat(chunks)));

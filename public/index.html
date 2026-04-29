@@ -622,8 +622,7 @@ async function downloadPDF(){
     const m2=document.getElementById('surface_m2').value.trim();
     const loc=document.getElementById('location_type').value;
     const imgEl=document.getElementById('img-interior');
-    const renderUrl=(imgEl&&imgEl.style.display!=='none'&&imgEl.src)?imgEl.src:'';
-    if(renderUrl)window._kit.render_url=renderUrl;
+    if(imgEl&&imgEl.src&&!imgEl.src.endsWith('#'))window._kit.render_url=imgEl.src;
     const res=await fetch('/api/pdf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kit:window._kit,brand_name:b,category:cat,surface_m2:m2,location_type:loc,country_name:C[selCode].name})});
     if(!res.ok)throw new Error();
     const blob=await res.blob();
@@ -646,7 +645,7 @@ async function sendEmail(){
     const m2=document.getElementById('surface_m2').value.trim();
     const loc=document.getElementById('location_type').value;
     const imgEl2=document.getElementById('img-interior');
-    if(imgEl2&&imgEl2.style.display!=='none'&&imgEl2.src)window._kit.render_url=imgEl2.src;
+    if(imgEl2&&imgEl2.src&&!imgEl2.src.endsWith('#'))window._kit.render_url=imgEl2.src;
     const res=await fetch('/api/email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,kit:window._kit,brand_name:b,category:cat,surface_m2:m2,location_type:loc,country_name:C[selCode].name})});
     const data=await res.json();
     if(!res.ok||data.error)throw new Error(data.error||'Error');
