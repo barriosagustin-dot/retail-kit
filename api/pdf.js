@@ -1,6 +1,8 @@
 const PDFDocument = require('pdfkit');
 const https = require('https');
 const http  = require('http');
+const path  = require('path');
+const fs    = require('fs');
 
 const PAGE_W = 595, PAGE_H = 842, ML = 40, CW = 515;
 const BLACK  = '#202121', GRAY = '#c9c9c9', GRAY_M = '#888888';
@@ -10,24 +12,22 @@ const PAGE_SIZE   = [PAGE_W, PAGE_H];
 
 function fetchImage(url) {
   return new Promise((resolve) => {
-    if (!url) return resolve(null);
+    if (!url) { console.log('[pdf] fetchImage: no url'); return resolve(null); }
+    console.log('[pdf] fetchImage url:', url);
     try {
       const lib = url.startsWith('https') ? https : http;
-      const req = lib.get(url, { timeout: 12000 }, (res) => {
+      const req = lib.get(url, { timeout: 20000 }, (res) => {
+        console.log('[pdf] fetchImage status:', res.statusCode);
         if (res.statusCode !== 200) return resolve(null);
         const chunks = [];
         res.on('data', c => chunks.push(c));
         res.on('end',  () => resolve(Buffer.concat(chunks)));
-        res.on('error', () => resolve(null));
+        res.on('error', (e) => { console.error('[pdf] fetchImage read error:', e.message); resolve(null); });
       });
-      req.on('error',   () => resolve(null));
-      req.on('timeout', () => { req.destroy(); resolve(null); });
-    } catch { resolve(null); }
+      req.on('error',   (e) => { console.error('[pdf] fetchImage req error:', e.message); resolve(null); });
+      req.on('timeout', () => { console.error('[pdf] fetchImage timeout'); req.destroy(); resolve(null); });
+    } catch (e) { console.error('[pdf] fetchImage exception:', e.message); resolve(null); }
   });
-}
-
-function accentBar(doc) {
-  doc.rect(0, 0, 3, PAGE_H).fillColor(ACCENT).fill();
 }
 
 function footer(doc) {
@@ -37,7 +37,6 @@ function footer(doc) {
 
 function pageHeader(doc, brandName, section) {
   doc.rect(0, 0, PAGE_W, 34).fillColor(BLACK).fill();
-  accentBar(doc);
   doc.fontSize(9).font('Helvetica-Bold').fillColor(WHITE)
     .text(brandName.toUpperCase(), 15, 15, { lineBreak: false });
   if (section) {
@@ -67,7 +66,9 @@ async function generateBuffer(kit, meta) {
   const inv = kit.investment_estimate;
   const rec = kit.strategic_recommendations;
 
-  const imgBuf = await fetchImage(kit.render_url || null);
+  const imgBuf  = await fetchImage(kit.render_url || null);
+  const logoPath = path.join(__dirname, '../public/Logo-Black.png');
+  const logoExists = fs.existsSync(logoPath);
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 0, size: PAGE_SIZE, autoFirstPage: true, bufferPages: true });
@@ -77,9 +78,7 @@ async function generateBuffer(kit, meta) {
     doc.on('error', reject);
 
     // ═══════════════════ PAGE 1 — COVER ═══════════════════
-    // Zone A: 75px black header
     doc.rect(0, 0, PAGE_W, 75).fillColor(BLACK).fill();
-    accentBar(doc);
 
     doc.fontSize(28).font('Helvetica').fillColor(WHITE).text('wedo', 15, 18, { lineBreak: false });
     doc.fontSize(5).font('Helvetica-Bold').fillColor(GRAY).text('STUDIO', 15, 50, { characterSpacing: 3.5, lineBreak: false });
@@ -89,12 +88,19 @@ async function generateBuffer(kit, meta) {
     doc.fontSize(7.5).font('Helvetica').fillColor(GRAY)
       .text(`${category}  ·  ${surface_m2} m²  ·  ${location_type}  ·  ${country_name}`, 98, 56, { lineBreak: false });
 
-    // Zone B: render image (x=3 preserves accent bar)
+    // Zone B: render image — x=3 deja margen para la línea accent
     if (imgBuf) {
       try { doc.image(imgBuf, 3, 75, { width: PAGE_W - 3, height: 245 }); }
-      catch { doc.rect(3, 75, PAGE_W - 3, 245).fillColor('#1a1a1a').fill(); }
+      catch (e) {
+        console.error('[pdf] image embed error:', e.message);
+        doc.rect(3, 75, PAGE_W - 3, 245).fillColor('#1a1a1a').fill();
+        doc.fontSize(8).font('Helvetica').fillColor('#444444')
+          .text('render_url: ' + (kit.render_url || 'no definida'), 10, 185, { width: PAGE_W - 20 });
+      }
     } else {
       doc.rect(3, 75, PAGE_W - 3, 245).fillColor('#1a1a1a').fill();
+      doc.fontSize(8).font('Helvetica').fillColor('#444444')
+        .text('render_url: ' + (kit.render_url || 'no definida'), 10, 185, { width: PAGE_W - 20 });
     }
 
     // Zone C: content from y=322
@@ -132,7 +138,7 @@ async function generateBuffer(kit, meta) {
     doc.y += 12;
 
     kit.layout.zones.forEach((z, i) => {
-      const pctNum = parseFloat(String(z.approx_percentage)) || 0;
+      const pctNum  = parseFloat(String(z.approx_percentage)) || 0;
       const barFill = Math.round(CW * pctNum / 100);
       const dH  = doc.fontSize(8).font('Helvetica').heightOfString(z.description, { width: CW, lineGap: 2 });
       const rowH = dH + 34;
@@ -165,11 +171,11 @@ async function generateBuffer(kit, meta) {
       .text('PUNTOS ESTRATÉGICOS CLAVE', ML, doc.y, { characterSpacing: 1, lineBreak: false });
     doc.y += 10;
 
-    const pts = kit.layout.key_strategic_points;
+    const pts    = kit.layout.key_strategic_points;
     const ptColW = (CW - 12) / 2;
     for (let i = 0; i < pts.length; i += 2) {
-      const lH = doc.fontSize(8).font('Helvetica').heightOfString(pts[i],         { width: ptColW - 24, lineGap: 2 });
-      const rH = (i + 1 < pts.length) ? doc.fontSize(8).font('Helvetica').heightOfString(pts[i + 1], { width: ptColW - 24, lineGap: 2 }) : 0;
+      const lH   = doc.fontSize(8).font('Helvetica').heightOfString(pts[i], { width: ptColW - 24, lineGap: 2 });
+      const rH   = (i + 1 < pts.length) ? doc.fontSize(8).font('Helvetica').heightOfString(pts[i + 1], { width: ptColW - 24, lineGap: 2 }) : 0;
       const rowH = Math.max(lH, rH) + 14;
       if (doc.y + rowH > BODY_BOTTOM) newPage(doc, brand_name, 'LAYOUT Y CIRCULACIÓN');
       const ry = doc.y;
@@ -207,7 +213,7 @@ async function generateBuffer(kit, meta) {
     kit.furniture_and_equipment.forEach((f, i) => {
       doc.fontSize(8.5).font('Helvetica');
       const rowTxtH = doc.heightOfString(String(f.item), { width: itemW - tPad * 2, lineGap: 2 });
-      const rowH = Math.max(rowTxtH + tPad * 2, 22);
+      const rowH    = Math.max(rowTxtH + tPad * 2, 22);
 
       if (ty + rowH > BODY_BOTTOM) {
         footer(doc);
@@ -276,7 +282,7 @@ async function generateBuffer(kit, meta) {
     const phases = kit.timeline;
     const N = phases.length;
     const r = 16;
-    const timelineY = doc.y + r;
+    const timelineY   = doc.y + r;
     const nodeSpacing = CW / N;
     const firstX = ML + nodeSpacing / 2;
     const lastX  = firstX + nodeSpacing * (N - 1);
@@ -298,18 +304,18 @@ async function generateBuffer(kit, meta) {
     doc.y = timelineY + r + 34;
 
     phases.forEach((phase, i) => {
-      const dH  = doc.fontSize(8).font('Helvetica').heightOfString(phase.description, { width: CW - 50, lineGap: 2 });
+      const dH   = doc.fontSize(8).font('Helvetica').heightOfString(phase.description, { width: CW - 50, lineGap: 2 });
       const rowH = Math.max(dH + 38, 44);
       if (doc.y + rowH > BODY_BOTTOM) newPage(doc, brand_name, 'CRONOGRAMA');
 
-      const ry = doc.y;
+      const ry     = doc.y;
       const isLast = i === N - 1;
       doc.rect(ML, ry, 34, rowH).fillColor(isLast ? ACCENT : BLACK).fill();
       doc.fontSize(10).font('Helvetica-Bold').fillColor(WHITE)
         .text(String(i + 1), ML, ry + (rowH - 12) / 2, { width: 34, align: 'center', lineBreak: false });
-      doc.fontSize(8.5).font('Helvetica-Bold').fillColor(BLACK).text(phase.phase, ML + 44, ry + 6, { lineBreak: false });
+      doc.fontSize(8.5).font('Helvetica-Bold').fillColor(BLACK).text(phase.phase,              ML + 44, ry + 6,  { lineBreak: false });
       doc.fontSize(7).font('Helvetica').fillColor(GRAY_M).text(`${phase.duration_weeks} semanas`, ML + 44, ry + 20, { lineBreak: false });
-      doc.fontSize(8).font('Helvetica').fillColor(GRAY_M).text(phase.description, ML + 44, ry + 32, { width: CW - 50, lineGap: 2 });
+      doc.fontSize(8).font('Helvetica').fillColor(GRAY_M).text(phase.description,             ML + 44, ry + 32, { width: CW - 50, lineGap: 2 });
       doc.y = ry + rowH + 6;
     });
     footer(doc);
@@ -362,23 +368,26 @@ async function generateBuffer(kit, meta) {
 
     // ═══════════════════ FINAL PAGE — CIERRE ═══════════════════
     doc.addPage({ margin: 0, size: PAGE_SIZE });
-    accentBar(doc);
 
-    doc.rect(170, 60, 255, 110).fillColor(BLACK).fill();
-    doc.fontSize(62).font('Helvetica').fillColor(GRAY)
-      .text('wedo', 170, 78, { width: 255, align: 'center', lineBreak: false });
-    doc.fontSize(7).font('Helvetica-Bold').fillColor(GRAY_M)
-      .text('STUDIO', 170, 148, { width: 255, align: 'center', characterSpacing: 4, lineBreak: false });
+    // Logo real o tipográfico (sin rect negro de fondo)
+    if (logoExists) {
+      doc.image(logoPath, (PAGE_W - 180) / 2, 140, { width: 180 });
+    } else {
+      doc.fontSize(62).font('Helvetica').fillColor(BLACK)
+        .text('wedo', ML, 155, { width: CW, align: 'center', characterSpacing: -0.5, lineBreak: false });
+      doc.fontSize(9).font('Helvetica-Bold').fillColor(GRAY_M)
+        .text('STUDIO', ML, 224, { width: CW, align: 'center', characterSpacing: 7, lineBreak: false });
+    }
 
     doc.fontSize(13).font('Helvetica-Bold').fillColor(BLACK)
-      .text(brand_name, ML, 206, { width: CW, align: 'center', lineBreak: false });
+      .text(brand_name, ML, 290, { width: CW, align: 'center', lineBreak: false });
     doc.fontSize(9).font('Helvetica').fillColor(GRAY_M)
-      .text(`${category}  ·  ${country_name}`, ML, 225, { width: CW, align: 'center', lineBreak: false });
+      .text(`${category}  ·  ${country_name}`, ML, 310, { width: CW, align: 'center', lineBreak: false });
 
     const sepW = CW * 0.3, sepX = ML + (CW - sepW) / 2;
-    doc.moveTo(sepX, 245).lineTo(sepX + sepW, 245).strokeColor(GRAY).lineWidth(0.5).stroke();
+    doc.moveTo(sepX, 332).lineTo(sepX + sepW, 332).strokeColor(GRAY).lineWidth(0.5).stroke();
     doc.fontSize(9).font('Helvetica').fillColor(GRAY_M)
-      .text('Análisis profesional para locales comerciales', ML, 256, { width: CW, align: 'center', lineBreak: false });
+      .text('Análisis profesional para locales comerciales', ML, 344, { width: CW, align: 'center', lineBreak: false });
 
     const stripY = PAGE_H - 85;
     doc.rect(0, stripY, PAGE_W, 85).fillColor(BLACK).fill();
@@ -386,6 +395,13 @@ async function generateBuffer(kit, meta) {
       .text('wedo-studio.com', ML, stripY + 22, { width: CW, align: 'center', lineBreak: false });
     doc.fontSize(7.5).font('Helvetica').fillColor(GRAY)
       .text('Diseño comercial  ·  Expansión de retail  ·  Análisis de locales', ML, stripY + 42, { width: CW, align: 'center', lineBreak: false });
+
+    // FIX 1: accent bar encima de todo el contenido de TODAS las páginas
+    const { start, count } = doc.bufferedPageRange();
+    for (let pg = start; pg < start + count; pg++) {
+      doc.switchToPage(pg);
+      doc.rect(0, 0, 3, PAGE_H).fillColor(ACCENT).fill();
+    }
 
     doc.end();
   });
