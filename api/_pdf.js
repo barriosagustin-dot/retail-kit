@@ -65,6 +65,14 @@ function guard(doc, brandName, sectionLabel) {
   }
 }
 
+function checkPageBreak(doc, neededHeight, brandName, sectionLabel) {
+  if (doc.y + neededHeight > BODY_BOTTOM) {
+    footer(doc);
+    doc.addPage({ margin: 0, size: PAGE_SIZE });
+    pageHeader(doc, brandName, sectionLabel);
+  }
+}
+
 function renderInvestment(doc, inv, brandName) {
   guard(doc, brandName, 'MOBILIARIO E INVERSIÓN');
   secLabel(doc, 'Estimación de inversión');
@@ -128,8 +136,8 @@ function buildPDF(doc, kit, meta, imgBuf) {
   doc.rect(0, 0, PAGE_W, hh).fillColor(BLACK).fill();
 
   // WEDO logo
-  doc.fontSize(30).font('Helvetica').fillColor(WHITE)
-    .text('wedo', ML, 22, { lineBreak: false });
+  doc.fontSize(26).font('Helvetica').fillColor(WHITE)
+    .text('wedo', ML, 22, { characterSpacing: -0.5, lineBreak: false });
   doc.fontSize(6).font('Helvetica-Bold').fillColor(GRAY)
     .text('STUDIO', ML, 60, { characterSpacing: 4.5, lineBreak: false });
 
@@ -332,10 +340,12 @@ function buildPDF(doc, kit, meta, imgBuf) {
   secLabel(doc, 'Cronograma de ejecución');
 
   kit.timeline.forEach((t, i) => {
-    guard(doc, brand_name, 'CRONOGRAMA');
-    const ty2 = doc.y;
-    const cx  = ML + 11;
-    const r   = 11;
+    doc.fontSize(9).font('Helvetica');
+    const dH   = doc.heightOfString(t.description, { width: CW - 30, lineGap: 3 });
+    checkPageBreak(doc, 32 + dH + 22, brand_name, 'CRONOGRAMA');
+    const ty2  = doc.y;
+    const cx   = ML + 11;
+    const r    = 11;
 
     doc.circle(cx, ty2 + r, r).fillColor(BLACK).fill();
     doc.fontSize(9).font('Helvetica-Bold').fillColor(WHITE)
@@ -349,8 +359,6 @@ function buildPDF(doc, kit, meta, imgBuf) {
 
     doc.fontSize(9).font('Helvetica').fillColor(GRAY_M)
       .text(t.description, ML + 30, ty2 + 32, { width: CW - 30, lineGap: 3 });
-    doc.fontSize(9).font('Helvetica');
-    const dH    = doc.heightOfString(t.description, { width: CW - 30, lineGap: 3 });
     const nextY = ty2 + 32 + dH + 22;
 
     if (i < kit.timeline.length - 1) {
@@ -387,11 +395,11 @@ function buildPDF(doc, kit, meta, imgBuf) {
     doc.y = gty + 22;
 
     items.forEach((item, i) => {
-      guard(doc, brand_name, 'RECOMENDACIONES');
-      const iy = doc.y;
       doc.fontSize(8.5).font('Helvetica');
       const ih  = doc.heightOfString(item, { width: CW - 42, lineGap: 2.5 });
       const rh  = Math.max(ih + 14, 26);
+      checkPageBreak(doc, rh, brand_name, 'RECOMENDACIONES');
+      const iy = doc.y;
 
       if (i % 2 === 0) doc.rect(ML, iy, CW, rh).fillColor(bg).fill();
       doc.rect(ML, iy, 3, rh).fillColor(accent).fill();
@@ -415,8 +423,8 @@ function buildPDF(doc, kit, meta, imgBuf) {
   doc.rect(0, 0, PAGE_W, 5).fillColor(BLACK).fill();
 
   const logoY = 190;
-  doc.fontSize(80).font('Helvetica').fillColor(BLACK)
-    .text('wedo', ML, logoY, { width: CW, align: 'center', lineBreak: false });
+  doc.fontSize(70).font('Helvetica').fillColor(BLACK)
+    .text('wedo', ML, logoY, { width: CW, align: 'center', characterSpacing: -0.5, lineBreak: false });
   doc.fontSize(10).font('Helvetica-Bold').fillColor(GRAY_M)
     .text('STUDIO', ML, logoY + 82, { width: CW, align: 'center', characterSpacing: 10, lineBreak: false });
 

@@ -58,7 +58,7 @@ module.exports = async (req, res) => {
       }
     }
     throw new Error('Timeout generating image');
-  } catch (error) {
-    res.status(500).json({ error: 'Error generating image', details: error.message });
+  } catch {
+    res.status(200).json({ url: null });
   }
 };
