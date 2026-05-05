@@ -66,9 +66,15 @@ async function generateBuffer(kit, meta) {
   const inv = kit.investment_estimate;
   const rec = kit.strategic_recommendations;
 
-  const imgBuf  = await fetchImage(kit.render_url || null);
-  const logoPath = path.join(__dirname, '../public/Logo-Black.png');
-  const logoExists = fs.existsSync(logoPath);
+  const imgBuf = await fetchImage(kit.render_url || null);
+
+  // FIX 3: logo blanco para portada
+  const whiteLogoPath  = path.join(__dirname, '../public/Logo.png');
+  const whiteLogoExists = fs.existsSync(whiteLogoPath);
+
+  // Logo negro para cierre
+  const blackLogoPath  = path.join(__dirname, '../public/Logo-Black.png');
+  const blackLogoExists = fs.existsSync(blackLogoPath);
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 0, size: PAGE_SIZE, autoFirstPage: true, bufferPages: true });
@@ -80,25 +86,37 @@ async function generateBuffer(kit, meta) {
     // ═══════════════════ PAGE 1 — COVER ═══════════════════
     doc.rect(0, 0, PAGE_W, 75).fillColor(BLACK).fill();
 
-    doc.fontSize(28).font('Helvetica').fillColor(WHITE).text('wedo', 15, 18, { lineBreak: false });
-    doc.fontSize(5).font('Helvetica-Bold').fillColor(GRAY).text('STUDIO', 15, 50, { characterSpacing: 3.5, lineBreak: false });
-    doc.moveTo(86, 12).lineTo(86, 63).strokeColor('#3d3d3d').lineWidth(0.5).stroke();
-    doc.fontSize(7).font('Helvetica-Bold').fillColor(GRAY).text('RETAIL KIT', 98, 18, { characterSpacing: 1.5, lineBreak: false });
-    doc.fontSize(18).font('Helvetica-Bold').fillColor(WHITE).text(brand_name, 98, 30, { lineBreak: false });
-    doc.fontSize(7.5).font('Helvetica').fillColor(GRAY)
-      .text(`${category}  ·  ${surface_m2} m²  ·  ${location_type}  ·  ${country_name}`, 98, 56, { lineBreak: false });
+    // FIX 3: logo blanco o tipográfico
+    if (whiteLogoExists) {
+      doc.image(whiteLogoPath, 40, 12, { width: 80 });
+      doc.moveTo(128, 12).lineTo(128, 63).strokeColor('#3d3d3d').lineWidth(0.5).stroke();
+      const bx = 140, bw = PAGE_W - 155;
+      doc.fontSize(7).font('Helvetica-Bold').fillColor(GRAY).text('RETAIL KIT', bx, 18, { width: bw, characterSpacing: 1.5, lineBreak: false });
+      doc.fontSize(18).font('Helvetica-Bold').fillColor(WHITE).text(brand_name, bx, 30, { width: bw, lineBreak: false });
+      doc.fontSize(7.5).font('Helvetica').fillColor(GRAY)
+        .text(`${category}  ·  ${surface_m2} m²  ·  ${location_type}  ·  ${country_name}`, bx, 56, { width: bw, lineBreak: false });
+    } else {
+      doc.fontSize(28).font('Helvetica').fillColor(WHITE).text('wedo', 15, 18, { lineBreak: false });
+      doc.fontSize(5).font('Helvetica-Bold').fillColor(GRAY).text('STUDIO', 15, 50, { characterSpacing: 3.5, lineBreak: false });
+      doc.moveTo(86, 12).lineTo(86, 63).strokeColor('#3d3d3d').lineWidth(0.5).stroke();
+      const bx = 98, bw = PAGE_W - 113;
+      doc.fontSize(7).font('Helvetica-Bold').fillColor(GRAY).text('RETAIL KIT', bx, 18, { width: bw, characterSpacing: 1.5, lineBreak: false });
+      doc.fontSize(18).font('Helvetica-Bold').fillColor(WHITE).text(brand_name, bx, 30, { width: bw, lineBreak: false });
+      doc.fontSize(7.5).font('Helvetica').fillColor(GRAY)
+        .text(`${category}  ·  ${surface_m2} m²  ·  ${location_type}  ·  ${country_name}`, bx, 56, { width: bw, lineBreak: false });
+    }
 
-    // Zone B: render image — x=3 deja margen para la línea accent
+    // Zone B: render image
     if (imgBuf) {
-      try { doc.image(imgBuf, 3, 75, { width: PAGE_W - 3, height: 245 }); }
+      try { doc.image(imgBuf, 0, 75, { width: PAGE_W, height: 245 }); }
       catch (e) {
         console.error('[pdf] image embed error:', e.message);
-        doc.rect(3, 75, PAGE_W - 3, 245).fillColor('#1a1a1a').fill();
+        doc.rect(0, 75, PAGE_W, 245).fillColor('#1a1a1a').fill();
         doc.fontSize(8).font('Helvetica').fillColor('#444444')
           .text('render_url: ' + (kit.render_url || 'no definida'), 10, 185, { width: PAGE_W - 20 });
       }
     } else {
-      doc.rect(3, 75, PAGE_W - 3, 245).fillColor('#1a1a1a').fill();
+      doc.rect(0, 75, PAGE_W, 245).fillColor('#1a1a1a').fill();
       doc.fontSize(8).font('Helvetica').fillColor('#444444')
         .text('render_url: ' + (kit.render_url || 'no definida'), 10, 185, { width: PAGE_W - 20 });
     }
@@ -148,7 +166,7 @@ async function generateBuffer(kit, meta) {
       doc.fontSize(12).font('Helvetica-Bold').fillColor(BLACK).text(z.approx_percentage, ML, zy, { width: 55, lineBreak: false });
       doc.fontSize(9).font('Helvetica-Bold').fillColor(BLACK).text(z.name, ML + 55, zy + 2, { lineBreak: false });
       doc.rect(ML, zy + 18, CW, 3).fillColor('#eeeeee').fill();
-      doc.rect(ML, zy + 18, barFill, 3).fillColor(ACCENT).fill();
+      doc.rect(ML, zy + 18, barFill, 3).fillColor(ACCENT).fill(); // zona fill bar — se conserva
       doc.fontSize(8).font('Helvetica').fillColor(GRAY_M).text(z.description, ML, zy + 26, { width: CW, lineGap: 2 });
       doc.y = zy + rowH;
 
@@ -166,26 +184,25 @@ async function generateBuffer(kit, meta) {
     doc.fontSize(9).font('Helvetica').fillColor(BLACK).text(kit.layout.customer_flow, ML, doc.y, { width: CW, lineGap: 2.5 });
     doc.y += 14;
 
+    // FIX 4: puntos estratégicos — lista columna única
     if (doc.y + 30 > BODY_BOTTOM) newPage(doc, brand_name, 'LAYOUT Y CIRCULACIÓN');
     doc.fontSize(7).font('Helvetica-Bold').fillColor(GRAY_M)
       .text('PUNTOS ESTRATÉGICOS CLAVE', ML, doc.y, { characterSpacing: 1, lineBreak: false });
     doc.y += 10;
 
-    const pts    = kit.layout.key_strategic_points;
-    const ptColW = (CW - 12) / 2;
-    for (let i = 0; i < pts.length; i += 2) {
-      const lH   = doc.fontSize(8).font('Helvetica').heightOfString(pts[i], { width: ptColW - 24, lineGap: 2 });
-      const rH   = (i + 1 < pts.length) ? doc.fontSize(8).font('Helvetica').heightOfString(pts[i + 1], { width: ptColW - 24, lineGap: 2 }) : 0;
-      const rowH = Math.max(lH, rH) + 14;
+    kit.layout.key_strategic_points.forEach((p, i) => {
+      doc.fontSize(8.5).font('Helvetica');
+      const pH   = doc.heightOfString(p, { width: CW - 32, lineGap: 2 });
+      const rowH = Math.max(pH + 10, 22);
       if (doc.y + rowH > BODY_BOTTOM) newPage(doc, brand_name, 'LAYOUT Y CIRCULACIÓN');
       const ry = doc.y;
-      for (let j = 0; j < 2 && i + j < pts.length; j++) {
-        const px = ML + j * (ptColW + 12);
-        doc.fontSize(7.5).font('Helvetica-Bold').fillColor(ACCENT).text(String(i + j + 1).padStart(2, '0'), px, ry, { lineBreak: false });
-        doc.fontSize(8).font('Helvetica').fillColor(BLACK).text(pts[i + j], px + 18, ry, { width: ptColW - 22, lineGap: 2 });
-      }
+      if (i % 2 === 0) doc.rect(ML, ry, CW, rowH).fillColor('#f5f5f5').fill();
+      doc.fontSize(8.5).font('Helvetica-Bold').fillColor(GRAY_M)
+        .text(String(i + 1).padStart(2, '0'), ML + 8, ry + (rowH - 10) / 2, { lineBreak: false });
+      doc.fontSize(8.5).font('Helvetica').fillColor(BLACK)
+        .text(p, ML + 28, ry + (rowH - pH) / 2, { width: CW - 36, lineGap: 2 });
       doc.y = ry + rowH;
-    }
+    });
     footer(doc);
 
     // ═══════════════════ PAGE 3 — MOBILIARIO + INVERSIÓN ═══════════════════
@@ -198,7 +215,6 @@ async function generateBuffer(kit, meta) {
 
     const printTableHeader = (y) => {
       doc.rect(ML, y, CW, 20).fillColor(BLACK).fill();
-      doc.rect(ML, y, 3, 20).fillColor(ACCENT).fill();
       doc.fontSize(7).font('Helvetica-Bold').fillColor(WHITE);
       let cx = ML;
       [['ÍTEM','left'],['CANT.','center'],['UNIT. USD','right'],['TOTAL USD','right']].forEach(([h, a], idx) => {
@@ -223,7 +239,6 @@ async function generateBuffer(kit, meta) {
       }
 
       if (i % 2 !== 0) doc.rect(ML, ty, CW, rowH).fillColor('#f5f5f5').fill();
-      doc.rect(ML, ty, 3, rowH).fillColor(ACCENT).fill();
       doc.fontSize(8.5).font('Helvetica').fillColor(BLACK)
         .text(String(f.item), ML + tPad, ty + tPad, { width: itemW - tPad * 2, lineGap: 2 });
       doc.fontSize(8.5).font('Helvetica').fillColor(BLACK)
@@ -263,7 +278,6 @@ async function generateBuffer(kit, meta) {
 
     const totY = doc.y;
     doc.roundedRect(ML, totY, CW, 46, 2).fillColor(BLACK).fill();
-    doc.rect(ML, totY, 3, 46).fillColor(ACCENT).fill();
     doc.fontSize(7).font('Helvetica-Bold').fillColor(GRAY)
       .text('TOTAL ESTIMADO', ML + 14, totY + 9, { characterSpacing: 1.5, lineBreak: false });
     doc.fontSize(20).font('Helvetica-Bold').fillColor(WHITE)
@@ -274,49 +288,41 @@ async function generateBuffer(kit, meta) {
     footer(doc);
 
     // ═══════════════════ PAGE 4 — CRONOGRAMA ═══════════════════
+    // FIX 5: lista vertical con círculos y línea punteada
     doc.addPage({ margin: 0, size: PAGE_SIZE });
     pageHeader(doc, brand_name, 'CRONOGRAMA');
     secLabel(doc, 'Cronograma de ejecución');
-    doc.y += 8;
 
     const phases = kit.timeline;
-    const N = phases.length;
-    const r = 16;
-    const timelineY   = doc.y + r;
-    const nodeSpacing = CW / N;
-    const firstX = ML + nodeSpacing / 2;
-    const lastX  = firstX + nodeSpacing * (N - 1);
+    const r  = 14;
+    const cx = ML + r;
 
-    doc.moveTo(firstX, timelineY).lineTo(lastX, timelineY).strokeColor(GRAY).lineWidth(1.5).stroke();
+    phases.forEach((t, i) => {
+      doc.fontSize(9).font('Helvetica');
+      const dH     = doc.heightOfString(t.description, { width: CW - 30, lineGap: 3 });
+      const needed = r * 2 + 32 + dH + 20;
+      if (doc.y + needed > BODY_BOTTOM) newPage(doc, brand_name, 'CRONOGRAMA');
 
-    phases.forEach((phase, i) => {
-      const cx = firstX + i * nodeSpacing;
-      const isLast = i === N - 1;
-      doc.circle(cx, timelineY, r).fillColor(isLast ? ACCENT : BLACK).fill();
+      const ty2  = doc.y;
+      const nextY = ty2 + 32 + dH + 20;
+
+      doc.circle(cx, ty2 + r, r).fillColor(BLACK).fill();
       doc.fontSize(9).font('Helvetica-Bold').fillColor(WHITE)
-        .text(String(i + 1), cx - r, timelineY - 6, { width: r * 2, align: 'center', lineBreak: false });
-      doc.fontSize(6.5).font('Helvetica-Bold').fillColor(BLACK)
-        .text(phase.phase, cx - nodeSpacing / 2 + 2, timelineY + r + 6, { width: nodeSpacing - 4, align: 'center', lineBreak: false });
-      doc.fontSize(6).font('Helvetica').fillColor(GRAY_M)
-        .text(`${phase.duration_weeks} sem`, cx - nodeSpacing / 2 + 2, timelineY + r + 18, { width: nodeSpacing - 4, align: 'center', lineBreak: false });
-    });
+        .text(String(i + 1), cx - r, ty2 + r - 6, { width: r * 2, align: 'center', lineBreak: false });
 
-    doc.y = timelineY + r + 34;
+      doc.fontSize(7).font('Helvetica-Bold').fillColor(GRAY_M)
+        .text(`${t.duration_weeks} SEMANAS`, ML + 30, ty2 + 2, { characterSpacing: 0.5, lineBreak: false });
+      doc.fontSize(13).font('Helvetica-Bold').fillColor(BLACK)
+        .text(t.phase, ML + 30, ty2 + 14, { width: CW - 30, lineBreak: false });
+      doc.fontSize(9).font('Helvetica').fillColor(GRAY_M)
+        .text(t.description, ML + 30, ty2 + 32, { width: CW - 30, lineGap: 3 });
 
-    phases.forEach((phase, i) => {
-      const dH   = doc.fontSize(8).font('Helvetica').heightOfString(phase.description, { width: CW - 50, lineGap: 2 });
-      const rowH = Math.max(dH + 38, 44);
-      if (doc.y + rowH > BODY_BOTTOM) newPage(doc, brand_name, 'CRONOGRAMA');
+      if (i < phases.length - 1) {
+        doc.moveTo(cx, ty2 + r * 2 + 2).lineTo(cx, nextY - 4)
+          .strokeColor(GRAY).lineWidth(0.8).dash(3, { space: 3 }).stroke().undash();
+      }
 
-      const ry     = doc.y;
-      const isLast = i === N - 1;
-      doc.rect(ML, ry, 34, rowH).fillColor(isLast ? ACCENT : BLACK).fill();
-      doc.fontSize(10).font('Helvetica-Bold').fillColor(WHITE)
-        .text(String(i + 1), ML, ry + (rowH - 12) / 2, { width: 34, align: 'center', lineBreak: false });
-      doc.fontSize(8.5).font('Helvetica-Bold').fillColor(BLACK).text(phase.phase,              ML + 44, ry + 6,  { lineBreak: false });
-      doc.fontSize(7).font('Helvetica').fillColor(GRAY_M).text(`${phase.duration_weeks} semanas`, ML + 44, ry + 20, { lineBreak: false });
-      doc.fontSize(8).font('Helvetica').fillColor(GRAY_M).text(phase.description,             ML + 44, ry + 32, { width: CW - 50, lineGap: 2 });
-      doc.y = ry + rowH + 6;
+      doc.y = nextY;
     });
     footer(doc);
 
@@ -335,9 +341,8 @@ async function generateBuffer(kit, meta) {
       if (doc.y + 28 > BODY_BOTTOM) newPage(doc, brand_name, 'RECOMENDACIONES');
       const gty = doc.y;
       doc.rect(ML, gty, CW, 22).fillColor('#f0f0f0').fill();
-      doc.rect(ML, gty, 3, 22).fillColor(ACCENT).fill();
       doc.fontSize(8).font('Helvetica-Bold').fillColor(color)
-        .text(title.toUpperCase(), ML + 14, gty + 7, { characterSpacing: 0.8, lineBreak: false });
+        .text(title.toUpperCase(), ML + 12, gty + 7, { characterSpacing: 0.8, lineBreak: false });
       doc.y = gty + 22 + 4;
 
       items.forEach((item, i) => {
@@ -349,14 +354,13 @@ async function generateBuffer(kit, meta) {
           newPage(doc, brand_name, 'RECOMENDACIONES');
           const gty2 = doc.y;
           doc.rect(ML, gty2, CW, 22).fillColor('#f0f0f0').fill();
-          doc.rect(ML, gty2, 3, 22).fillColor(ACCENT).fill();
           doc.fontSize(8).font('Helvetica-Bold').fillColor(color)
-            .text(title.toUpperCase() + ' (cont.)', ML + 14, gty2 + 7, { characterSpacing: 0.8, lineBreak: false });
+            .text(title.toUpperCase() + ' (cont.)', ML + 12, gty2 + 7, { characterSpacing: 0.8, lineBreak: false });
           doc.y = gty2 + 22 + 4;
         }
 
         const iy = doc.y;
-        doc.fontSize(7.5).font('Helvetica-Bold').fillColor(ACCENT)
+        doc.fontSize(7.5).font('Helvetica-Bold').fillColor(GRAY_M)
           .text(String(i + 1).padStart(2, '0'), ML + 8, iy + (rh - 9) / 2, { lineBreak: false });
         doc.fontSize(8.5).font('Helvetica').fillColor(BLACK)
           .text(item, ML + 28, iy + 7, { width: CW - 42, lineGap: 2.5 });
@@ -369,9 +373,8 @@ async function generateBuffer(kit, meta) {
     // ═══════════════════ FINAL PAGE — CIERRE ═══════════════════
     doc.addPage({ margin: 0, size: PAGE_SIZE });
 
-    // Logo real o tipográfico (sin rect negro de fondo)
-    if (logoExists) {
-      doc.image(logoPath, (PAGE_W - 180) / 2, 140, { width: 180 });
+    if (blackLogoExists) {
+      doc.image(blackLogoPath, (PAGE_W - 180) / 2, 140, { width: 180 });
     } else {
       doc.fontSize(62).font('Helvetica').fillColor(BLACK)
         .text('wedo', ML, 155, { width: CW, align: 'center', characterSpacing: -0.5, lineBreak: false });
@@ -379,15 +382,16 @@ async function generateBuffer(kit, meta) {
         .text('STUDIO', ML, 224, { width: CW, align: 'center', characterSpacing: 7, lineBreak: false });
     }
 
-    doc.fontSize(13).font('Helvetica-Bold').fillColor(BLACK)
+    // FIX 6: brand_name fontSize 28
+    doc.fontSize(28).font('Helvetica-Bold').fillColor(BLACK)
       .text(brand_name, ML, 290, { width: CW, align: 'center', lineBreak: false });
     doc.fontSize(9).font('Helvetica').fillColor(GRAY_M)
-      .text(`${category}  ·  ${country_name}`, ML, 310, { width: CW, align: 'center', lineBreak: false });
+      .text(`${category}  ·  ${country_name}`, ML, 328, { width: CW, align: 'center', lineBreak: false });
 
     const sepW = CW * 0.3, sepX = ML + (CW - sepW) / 2;
-    doc.moveTo(sepX, 332).lineTo(sepX + sepW, 332).strokeColor(GRAY).lineWidth(0.5).stroke();
+    doc.moveTo(sepX, 350).lineTo(sepX + sepW, 350).strokeColor(GRAY).lineWidth(0.5).stroke();
     doc.fontSize(9).font('Helvetica').fillColor(GRAY_M)
-      .text('Análisis profesional para locales comerciales', ML, 344, { width: CW, align: 'center', lineBreak: false });
+      .text('Análisis profesional para locales comerciales', ML, 362, { width: CW, align: 'center', lineBreak: false });
 
     const stripY = PAGE_H - 85;
     doc.rect(0, stripY, PAGE_W, 85).fillColor(BLACK).fill();
@@ -395,13 +399,6 @@ async function generateBuffer(kit, meta) {
       .text('wedo-studio.com', ML, stripY + 22, { width: CW, align: 'center', lineBreak: false });
     doc.fontSize(7.5).font('Helvetica').fillColor(GRAY)
       .text('Diseño comercial  ·  Expansión de retail  ·  Análisis de locales', ML, stripY + 42, { width: CW, align: 'center', lineBreak: false });
-
-    // FIX 1: accent bar encima de todo el contenido de TODAS las páginas
-    const { start, count } = doc.bufferedPageRange();
-    for (let pg = start; pg < start + count; pg++) {
-      doc.switchToPage(pg);
-      doc.rect(0, 0, 3, PAGE_H).fillColor(ACCENT).fill();
-    }
 
     doc.end();
   });
