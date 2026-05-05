@@ -10,23 +10,27 @@ const WHITE  = '#ffffff', ACCENT = '#3d6b8e', RED = '#8B2020';
 const BODY_BOTTOM = PAGE_H - 50;
 const PAGE_SIZE   = [PAGE_W, PAGE_H];
 
-function fetchImage(url) {
+function fetchImage(url, redirects) {
+  if (!redirects) redirects = 0;
   return new Promise((resolve) => {
-    if (!url) { console.log('[pdf] fetchImage: no url'); return resolve(null); }
-    console.log('[pdf] fetchImage url:', url);
+    if (!url || redirects > 5) return resolve(null);
     try {
       const lib = url.startsWith('https') ? https : http;
       const req = lib.get(url, { timeout: 20000 }, (res) => {
-        console.log('[pdf] fetchImage status:', res.statusCode);
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          const next = res.headers.location.startsWith('http') ? res.headers.location : new URL(res.headers.location, url).href;
+          res.resume();
+          return fetchImage(next, redirects + 1).then(resolve);
+        }
         if (res.statusCode !== 200) return resolve(null);
         const chunks = [];
         res.on('data', c => chunks.push(c));
         res.on('end',  () => resolve(Buffer.concat(chunks)));
-        res.on('error', (e) => { console.error('[pdf] fetchImage read error:', e.message); resolve(null); });
+        res.on('error', () => resolve(null));
       });
-      req.on('error',   (e) => { console.error('[pdf] fetchImage req error:', e.message); resolve(null); });
-      req.on('timeout', () => { console.error('[pdf] fetchImage timeout'); req.destroy(); resolve(null); });
-    } catch (e) { console.error('[pdf] fetchImage exception:', e.message); resolve(null); }
+      req.on('error',   () => resolve(null));
+      req.on('timeout', () => { req.destroy(); resolve(null); });
+    } catch (e) { resolve(null); }
   });
 }
 
