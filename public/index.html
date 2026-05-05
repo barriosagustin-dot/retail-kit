@@ -599,12 +599,25 @@ async function generateImage(category,country,designIntent){
   const skel=document.getElementById('skel-interior');
   const img=document.getElementById('img-interior');
   try{
-    const res=await fetch('/api/image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({category,country,design_intent:designIntent})});
-    const data=await res.json();
-    if(data.error)throw new Error(data.error);
-    skel.style.display='none';
-    img.src=data.url;
-    img.style.display='block';
+    const createRes=await fetch('/api/image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({category,country,design_intent:designIntent})});
+    const create=await createRes.json();
+    if(create.error)throw new Error(create.error);
+    const predId=create.id;
+    for(let i=0;i<60;i++){
+      await new Promise(r=>setTimeout(r,3000));
+      const pollRes=await fetch(`/api/image?id=${predId}`);
+      const poll=await pollRes.json();
+      if(poll.status==='succeeded'&&poll.url){
+        skel.style.display='none';
+        img.src=poll.url;
+        img.style.display='block';
+        return;
+      }
+      if(poll.status==='failed'||poll.status==='canceled'||poll.status==='error'){
+        throw new Error(poll.error||poll.status);
+      }
+    }
+    throw new Error('timeout');
   }catch(e){
     section.style.display='none';
   }
