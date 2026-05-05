@@ -511,7 +511,7 @@ async function step1Submit(){
     r.style.opacity='0';r.style.transition='opacity .35s ease';r.style.display='block';
     requestAnimationFrame(()=>requestAnimationFrame(()=>{r.style.opacity='1';}));
     r.scrollIntoView({behavior:'smooth'});
-    window._kit=kit;
+    window._kit=kit;window._kit1=kit;
   } catch(e){
     document.getElementById('skeleton-result').style.display='none';
     document.getElementById('step1').style.display='block';
@@ -624,7 +624,8 @@ async function downloadPDF(){
     const loc=document.getElementById('location_type').value;
     const imgEl=document.getElementById('img-interior');
     if(imgEl&&imgEl.src&&!imgEl.src.endsWith('#'))window._kit.render_url=imgEl.src;
-    const res=await fetch('/api/pdf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kit:window._kit,brand_name:b,category:cat,surface_m2:m2,location_type:loc,country_name:C[selCode].name})});
+    const mergedKit=Object.assign({},window._kit,{project_summary:(window._kit1||window._kit).project_summary,layout:(window._kit1||window._kit).layout});
+    const res=await fetch('/api/pdf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kit:mergedKit,brand_name:b,category:cat,surface_m2:m2,location_type:loc,country_name:C[selCode].name})});
     if(!res.ok)throw new Error();
     const blob=await res.blob();
     const url=URL.createObjectURL(blob);
