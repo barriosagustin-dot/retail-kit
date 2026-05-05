@@ -47,7 +47,7 @@ function pageHeader(doc, brandName, section) {
     doc.fontSize(7.5).font('Helvetica').fillColor(GRAY)
       .text(section, 15, 15, { width: PAGE_W - 30, align: 'right', lineBreak: false });
   }
-  doc.y = 42;
+  doc.y = 54;
 }
 
 function newPage(doc, brandName, section) {
@@ -59,9 +59,7 @@ function newPage(doc, brandName, section) {
 function secLabel(doc, label) {
   doc.fontSize(7).font('Helvetica-Bold').fillColor(GRAY_M)
     .text(label.toUpperCase(), ML, doc.y, { characterSpacing: 1.2, lineBreak: false });
-  doc.y += 3;
-  doc.moveTo(ML, doc.y).lineTo(ML + CW, doc.y).strokeColor(GRAY).lineWidth(0.4).stroke();
-  doc.y += 9;
+  doc.y += 12;
 }
 
 async function generateBuffer(kit, meta) {
@@ -73,11 +71,10 @@ async function generateBuffer(kit, meta) {
   const imgBuf = await fetchImage(kit.render_url || null);
 
   // FIX 3: logo blanco para portada
-  const whiteLogoPath  = path.join(__dirname, '../public/Logo.png');
+  const whiteLogoPath  = path.join(__dirname, '../Images/Logo.png');
   const whiteLogoExists = fs.existsSync(whiteLogoPath);
 
-  // Logo negro para cierre
-  const blackLogoPath  = path.join(__dirname, '../public/Logo-Black.png');
+  const blackLogoPath  = path.join(__dirname, '../Images/Logo-Black.png');
   const blackLogoExists = fs.existsSync(blackLogoPath);
 
   return new Promise((resolve, reject) => {
@@ -125,8 +122,8 @@ async function generateBuffer(kit, meta) {
         .text('render_url: ' + (kit.render_url || 'no definida'), 10, 185, { width: PAGE_W - 20 });
     }
 
-    // Zone C: content from y=322
-    doc.y = 322;
+    // Zone C: content from y=340
+    doc.y = 340;
     secLabel(doc, 'Concepto del proyecto');
     doc.fontSize(10).font('Helvetica').fillColor(BLACK).text(ps.concept, ML, doc.y, { width: CW, lineGap: 2.5 });
     doc.y += 14;
