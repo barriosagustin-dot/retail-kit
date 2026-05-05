@@ -561,6 +561,7 @@ async function step2Submit(){
     const res=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({brand_name:b,category:cat,surface_m2:m2,location_type:loc,country_name:C[selCode].name,brand_positioning:pos,budget_level:bud,opening_deadline_days:days,main_objective:obj})});
     const kit=await res.json();
     if(kit.error)throw new Error(kit.error);
+    window._kit=kit;
     ld.remove();setStep(3);
     renderFull(kit,selCode,m2);
     document.getElementById('full-result').style.display='block';

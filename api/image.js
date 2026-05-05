@@ -33,6 +33,7 @@ module.exports = async (req, res) => {
     });
 
     const prediction = await createRes.json();
+    console.log('[image] prediction status:', prediction.status, 'error:', prediction.error);
     if (prediction.error) throw new Error(prediction.error);
 
     if (prediction.status === 'succeeded') {
@@ -58,7 +59,8 @@ module.exports = async (req, res) => {
       }
     }
     throw new Error('Timeout generating image');
-  } catch {
-    res.status(200).json({ url: null });
+  } catch (e) {
+    console.error('[image] error:', e.message);
+    res.status(200).json({ url: null, error: e.message });
   }
 };
