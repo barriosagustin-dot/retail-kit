@@ -25,7 +25,7 @@ module.exports = async (req, res) => {
         input: {
           prompt,
           aspect_ratio: '16:9',
-          output_format: 'webp',
+          output_format: 'jpg',
           output_quality: 85,
           safety_tolerance: 2
         }
